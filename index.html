@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>عملية الدرع الرقمي</title>
+<style>
+:root{--olive:#6f8f16;--acc:#c8f542;--amber:#ffb300;--red:#e53935;--txt:#e8efe0;--mut:#8fa085;--line:rgba(160,200,60,.35)}
+*{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;color:var(--txt);font-family:Tahoma,"Segoe UI",Arial,sans-serif}
+canvas#game{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+code{direction:ltr;unicode-bidi:isolate;font-family:Consolas,"Courier New",monospace;background:rgba(200,245,66,.12);padding:0 6px;border-radius:3px;color:var(--acc)}
+.screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:30;padding:12px;overflow:auto}
+.screen.show{display:flex}
+#login,#end{background:radial-gradient(ellipse at center,rgba(0,0,0,.35),rgba(0,0,0,.88))}
+#login::after,#end::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+.card{position:relative;z-index:2;width:min(94vw,520px);background:linear-gradient(160deg,rgba(28,36,23,.97),rgba(9,13,8,.98));border:1px solid #3d4d2c;padding:26px 30px;
+ clip-path:polygon(0 16px,16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px))}
+.card::before{content:"";position:absolute;inset:0;border-top:3px solid var(--acc);pointer-events:none}
+.badge{display:inline-block;font-size:12px;letter-spacing:1px;color:var(--acc);border:1px solid var(--line);padding:3px 10px;margin-bottom:12px}
+.card h1{font-size:34px;line-height:1.25;margin-bottom:6px;color:#fff;text-shadow:0 0 18px rgba(200,245,66,.35)}
+.card h1 span{color:var(--acc)}
+.brief{color:var(--mut);font-size:14px;line-height:1.8;margin-bottom:16px}
+label{display:block;font-size:13px;color:var(--acc);margin:12px 0 6px;font-weight:700}
+input,select{width:100%;padding:12px 14px;font-size:17px;font-family:inherit;background:rgba(0,0,0,.55);color:#fff;border:1px solid #44562f;outline:none;user-select:text;-webkit-user-select:text}
+input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 2px rgba(200,245,66,.2)}
+select option{background:#10160d;color:#fff}
+.err{min-height:20px;color:#ff8a80;font-size:13px;margin-top:8px}
+.btn{display:inline-block;background:linear-gradient(#b4d83a,#6f8f16);color:#0b1104;font-weight:800;border:0;padding:12px 26px;font-size:17px;font-family:inherit;cursor:pointer;
+ clip-path:polygon(0 8px,8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px));transition:filter .15s,transform .1s}
+.btn:hover{filter:brightness(1.15)}.btn:active{transform:scale(.97)}
+.btn.big{width:100%;margin-top:14px;font-size:20px;padding:15px}
+.btn.alt{background:linear-gradient(#3a4a2a,#222c18);color:var(--txt)}
+.btn:disabled{filter:grayscale(1);opacity:.5;cursor:not-allowed}
+.ctrls{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px;color:var(--mut)}
+.ctrls b{color:var(--acc);font-family:Consolas,monospace;direction:ltr;unicode-bidi:isolate;background:rgba(255,255,255,.07);padding:1px 6px;margin-inline-start:4px}
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;display:none;z-index:10}
+#hud.show{display:block}
+.panel{position:absolute;background:rgba(8,12,7,.66);border:1px solid var(--line);padding:8px 14px}
+#pInfo{top:14px;right:14px;min-width:170px}
+#pInfo .n{font-size:17px;font-weight:800;color:#fff}
+#pInfo .g{font-size:12px;color:var(--acc);margin-top:2px}
+#killBox{top:14px;left:50%;transform:translateX(-50%);text-align:center;min-width:240px}
+#killBox .t{font-size:12px;color:var(--mut)}
+#killTxt{font-size:26px;font-weight:900;color:var(--acc);font-family:Consolas,monospace;direction:ltr;display:block}
+#pips{display:flex;gap:4px;justify-content:center;margin-top:4px;direction:ltr}
+#pips i{width:18px;height:6px;background:rgba(255,255,255,.15)}
+#pips i.on{background:var(--acc);box-shadow:0 0 8px var(--acc)}
+#scoreBox{top:92px;right:14px;font-size:13px;color:var(--mut)}
+#scoreTxt{color:var(--amber);font-size:20px;font-weight:800;margin-inline-start:6px}
+#miniWrap{position:absolute;top:14px;left:14px;width:150px;height:150px}
+#mini{width:150px;height:150px;display:block}
+#vitals{bottom:18px;right:18px;width:290px}
+#vitals .row{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--mut)}
+#hpTxt{font-size:30px;font-weight:900;color:#fff;font-family:Consolas,monospace;direction:ltr}
+.bar{height:10px;background:rgba(255,255,255,.12);margin-top:4px;overflow:hidden}
+#hpFill{height:100%;width:100%;background:#7cd34a;transition:width .15s}
+#ammoBox{bottom:18px;left:18px;text-align:center;min-width:150px}
+#ammoTxt{font-size:38px;font-weight:900;color:#fff;font-family:Consolas,monospace;direction:ltr;display:block}
+#ammoTxt small{font-size:18px;color:var(--mut)}
+#reloadTxt{font-size:12px;color:var(--amber);min-height:16px}
+#crosshair{position:absolute;left:50%;top:50%;width:0;height:0;--g:8px}
+#crosshair i{position:absolute;background:var(--acc);box-shadow:0 0 3px #000}
+#crosshair i:nth-child(1){width:2px;height:9px;left:-1px;top:calc(-9px - var(--g))}
+#crosshair i:nth-child(2){width:2px;height:9px;left:-1px;top:var(--g)}
+#crosshair i:nth-child(3){height:2px;width:9px;top:-1px;left:calc(-9px - var(--g))}
+#crosshair i:nth-child(4){height:2px;width:9px;top:-1px;left:var(--g)}
+#crosshair b{position:absolute;width:2px;height:2px;left:-1px;top:-1px;background:var(--acc)}
+#hitm{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;opacity:0;transition:opacity .12s}
+#hitm::before,#hitm::after{content:"";position:absolute;left:12px;top:-2px;width:2px;height:30px;background:#fff;transform:rotate(45deg)}
+#hitm::after{transform:rotate(-45deg)}
+#hitm.red::before,#hitm.red::after{background:#ff3b30}
+#vig{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(190,0,0,.75) 100%);opacity:0}
+#dirind{position:absolute;left:50%;top:50%;width:0;height:0}
+#dirind div{position:absolute;left:-70px;top:-190px;width:140px;height:34px;background:radial-gradient(ellipse at 50% 0,rgba(255,40,30,.95),transparent 70%);opacity:0;transition:opacity .6s}
+#toast{position:absolute;left:50%;top:150px;transform:translateX(-50%);font-size:20px;font-weight:800;text-shadow:0 2px 8px #000;opacity:0;transition:opacity .25s;white-space:nowrap}
+/* quiz */
+#quiz{background:rgba(0,0,0,.72);backdrop-filter:blur(3px)}
+.quizBox{width:min(96vw,780px);background:linear-gradient(170deg,rgba(24,32,20,.98),rgba(8,12,7,.99));border:1px solid #44562f;border-top:4px solid var(--amber);padding:22px 26px}
+.qhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:13px;color:var(--amber);letter-spacing:.5px}
+.qhead .tag{border:1px solid var(--amber);padding:2px 10px;font-weight:800}
+#qText{font-size:22px;line-height:1.7;font-weight:700;color:#fff;margin-bottom:16px}
+#qOpts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{display:flex;gap:12px;align-items:center;text-align:right;background:rgba(255,255,255,.06);border:1px solid #44562f;color:var(--txt);font-size:17px;font-family:inherit;padding:13px 14px;cursor:pointer;transition:background .15s,border-color .15s;line-height:1.5}
+.opt:hover:not(:disabled){background:rgba(200,245,66,.12);border-color:var(--acc)}
+.opt .lt{flex:0 0 32px;height:32px;display:grid;place-items:center;background:var(--olive);color:#0b1104;font-weight:900;border-radius:3px}
+.opt.correct{background:rgba(46,125,50,.45);border-color:#69f06a}
+.opt.wrong{background:rgba(198,40,40,.45);border-color:#ff6b6b}
+.opt:disabled{cursor:default}
+#qFeed{display:none;margin-top:14px;padding:12px 14px;font-size:15px;line-height:1.8;border-right:4px solid}
+#qFeed.ok{display:block;background:rgba(46,125,50,.2);border-color:#69f06a}
+#qFeed.no{display:block;background:rgba(198,40,40,.2);border-color:#ff6b6b}
+#qNext{display:none;margin-top:14px}
+.hint{font-size:11px;color:var(--mut);margin-top:10px;text-align:center}
+/* pause */
+#pause{background:rgba(0,0,0,.6);cursor:pointer}
+#pause .card{text-align:center}
+#pause h2{font-size:28px;color:var(--acc);margin-bottom:6px}
+/* end */
+.report{position:relative;z-index:2;width:min(94vw,560px);background:linear-gradient(160deg,#1c2417,#0a0e08);border:2px solid #44562f;padding:24px 28px}
+.report .banner{text-align:center;padding:14px 8px;margin-bottom:14px;font-size:30px;font-weight:900;letter-spacing:1px}
+.report .banner small{display:block;font-size:14px;font-weight:600;margin-top:4px;opacity:.85}
+.report.win .banner{background:linear-gradient(90deg,transparent,rgba(255,179,0,.3),transparent);color:#ffd54f;text-shadow:0 0 20px rgba(255,179,0,.6)}
+.report.lose .banner{background:linear-gradient(90deg,transparent,rgba(229,57,53,.3),transparent);color:#ff6e6a}
+.report .doc{text-align:center;font-size:12px;color:var(--mut);margin-bottom:8px}
+.report table{width:100%;border-collapse:collapse;font-size:16px}
+.report td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.1)}
+.report td:first-child{color:var(--mut);width:48%}
+.report td:last-child{font-weight:800;color:#fff}
+.report tr.final td{font-size:20px;color:var(--acc)!important;border-bottom:0}
+.report .foot{margin-top:12px;font-size:11px;color:var(--mut);text-align:center}
+.report .btns{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.report .btns .btn{flex:1;font-size:15px;padding:12px 10px}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:40;overflow:hidden}
+#confetti i{position:absolute;top:-20px;width:9px;height:16px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(112vh) rotate(720deg)}}
+@media(max-width:640px){#qOpts{grid-template-columns:1fr}.card h1{font-size:26px}#vitals{width:200px}#miniWrap{display:none}}
+@media print{
+ html,body{height:auto;overflow:visible;background:#fff!important}
+ canvas#game,.screen:not(#end),#hud,.noprint,#confetti,#end::after{display:none!important}
+ #end{position:static;display:block!important;background:#fff!important;padding:0}
+ .report{background:#fff!important;border:2px solid #000;color:#000;margin:0 auto;width:100%}
+ .report *{color:#000!important;background:transparent!important;text-shadow:none!important}
+}
+/* ===== الهاتف / اللمس ===== */
+*{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.screen{align-items:safe center}
+.thint{display:none;margin-top:12px;font-size:12px;color:var(--mut);line-height:1.8;text-align:center}
+#touch{position:fixed;inset:0;z-index:12;display:none;touch-action:none}
+#tzMove,#tzLook{position:absolute;top:0;height:100%;touch-action:none}
+#tzMove{left:0;width:42%}
+#tzLook{left:42%;width:58%}
+#tStick{position:fixed;width:116px;height:116px;margin:-58px 0 0 -58px;border-radius:50%;border:2px solid rgba(200,245,66,.55);background:rgba(200,245,66,.08);pointer-events:none;opacity:.45}
+#tKnob{position:absolute;left:34px;top:34px;width:48px;height:48px;border-radius:50%;background:rgba(200,245,66,.55);border:2px solid rgba(200,245,66,.95)}
+.tb{position:absolute;display:grid;place-items:center;text-align:center;border-radius:50%;background:rgba(10,16,8,.55);border:2px solid rgba(200,245,66,.6);color:#fff;font-weight:800;font-size:12px;line-height:1.25;touch-action:none}
+.tb.on{background:rgba(200,245,66,.45)}
+#tbFire{right:calc(28px + env(safe-area-inset-right,0px));bottom:calc(26px + env(safe-area-inset-bottom,0px));width:92px;height:92px;font-size:15px;background:rgba(229,57,53,.5);border-color:#ff8a80}
+#tbJump{right:calc(136px + env(safe-area-inset-right,0px));bottom:calc(40px + env(safe-area-inset-bottom,0px));width:64px;height:64px}
+#tbReload{right:calc(40px + env(safe-area-inset-right,0px));bottom:calc(134px + env(safe-area-inset-bottom,0px));width:58px;height:58px}
+#tbSprint{left:calc(24px + env(safe-area-inset-left,0px));bottom:176px;width:58px;height:58px}
+#rot{position:fixed;inset:0;z-index:60;background:#0a0e08;display:none;align-items:center;justify-content:center;text-align:center;font-size:20px;line-height:2;color:var(--acc);padding:20px}
+body.touch .ctrls,body.touch .hint{display:none}
+body.touch .thint{display:block}
+body.touch #pInfo{top:6px;right:6px;min-width:0;padding:4px 10px}
+body.touch #pInfo .n{font-size:13px}
+body.touch #pInfo .g{font-size:10px}
+body.touch #scoreBox{top:50px;right:6px;font-size:11px;padding:3px 10px}
+body.touch #scoreTxt{font-size:15px}
+body.touch #killBox{top:6px;min-width:150px;padding:4px 10px}
+body.touch #killTxt{font-size:18px}
+body.touch #killBox .t{font-size:10px}
+body.touch #pips i{width:12px;height:5px}
+body.touch #miniWrap{display:block!important;width:96px;height:96px;top:6px;left:6px}
+body.touch #mini{width:96px;height:96px}
+body.touch #vitals{bottom:8px;left:50%;right:auto;transform:translateX(-50%);width:190px;padding:4px 10px}
+body.touch #hpTxt{font-size:20px}
+body.touch #ammoBox{bottom:auto;left:auto;top:84px;right:6px;min-width:0;padding:3px 10px}
+body.touch #ammoTxt{font-size:20px}
+body.touch #ammoTxt small{font-size:12px}
+body.touch #toast{top:62px;font-size:15px}
+@media (orientation:portrait){body.touch.ingame #rot{display:flex}}
+@media (max-height:520px){
+ .card{padding:14px 20px}.card h1{font-size:22px;margin-bottom:4px}.badge{margin-bottom:6px}.brief{font-size:12px;margin-bottom:6px;line-height:1.6}
+ label{margin:6px 0 3px}input,select{padding:8px 10px;font-size:15px}.btn.big{margin-top:8px;padding:10px;font-size:17px}
+ .quizBox{padding:12px 16px}#qText{font-size:16px;margin-bottom:10px;line-height:1.5}.opt{font-size:14px;padding:8px 10px}.opt .lt{height:26px;flex-basis:26px}
+ #qFeed{font-size:13px;margin-top:8px;padding:8px 10px;line-height:1.6}#qNext{margin-top:8px;padding:9px 20px;font-size:15px}.qhead{margin-bottom:8px}
+ .report{padding:12px 18px}.report .banner{font-size:20px;padding:6px;margin-bottom:6px}.report td{padding:4px 8px;font-size:13px}.report tr.final td{font-size:15px}.report .btns{margin-top:8px}.report .btns .btn{font-size:13px;padding:8px 6px}.report .foot{font-size:10px;margin-top:6px}.report .doc{margin-bottom:4px}
+}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<noscript>يتطلب هذا التطبيق تفعيل JavaScript.</noscript>
+
+<!-- شاشة تسجيل الدخول -->
+<div id="login" class="screen show">
+  <div class="card">
+    <span class="badge">تقنية المعلومات · مناهج سلطنة عُمان · الصفوف 5 – 12</span>
+    <h1>عملية <span>الدرع الرقمي</span></h1>
+    <p class="brief">أنت جندي في وحدة الأمن الرقمي. اقضِ على <b style="color:#fff">10 أعداء</b> وأجب عن سؤال المعرفة الذي يسقط مع كل عدو لتُتمّ المهمة وتحقق النصر.</p>
+    <label for="nameIn">اسم الطالب</label>
+    <input id="nameIn" maxlength="30" autocomplete="off" placeholder="اكتب اسمك هنا">
+    <label for="gradeIn">الصف الدراسي</label>
+    <select id="gradeIn">
+      <option value="5">الصف الخامس</option><option value="6">الصف السادس</option>
+      <option value="7">الصف السابع</option><option value="8">الصف الثامن</option>
+      <option value="9">الصف التاسع</option><option value="10">الصف العاشر</option>
+      <option value="11">الصف الحادي عشر</option><option value="12">الصف الثاني عشر</option>
+    </select>
+    <div class="err" id="loginErr"></div>
+    <div class="thint" style="display:block;margin:0 0 4px;font-size:11px">عند انتهاء الجولة تُرسَل نتيجتك (الاسم والصف والدرجة) إلى المعلم المشرف على اللعبة.</div>
+    <button id="startBtn" class="btn big">ابدأ المهمة</button>
+    <div class="thint">📱 الحركة: العصا اليسرى · التصويب: اسحب بإصبعك على الجهة اليمنى · 🔥 للنار · وأزرار القفز والتلقيم والجري<br>يُفضّل تدوير الهاتف إلى الوضع الأفقي</div>
+    <div class="ctrls">
+      <div>الحركة <b>W A S D</b></div><div>القفز <b>Space</b></div>
+      <div>الجري <b>Shift</b></div><div>إعادة التلقيم <b>R</b></div>
+      <div>التصويب <b>الماوس</b></div><div>إطلاق النار <b>زر الماوس الأيسر</b></div>
+    </div>
+  </div>
+</div>
+
+<!-- واجهة اللعب -->
+<div id="hud">
+  <div class="panel" id="pInfo"><div class="n" id="hName">—</div><div class="g" id="hGrade">—</div></div>
+  <div class="panel" id="killBox"><div class="t">الأعداء المقضي عليهم</div><span id="killTxt">0 / 10</span><div id="pips"></div></div>
+  <div class="panel" id="scoreBox">النقاط<span id="scoreTxt">0</span></div>
+  <div id="miniWrap"><canvas id="mini" width="300" height="300"></canvas></div>
+  <div id="vig"></div>
+  <div id="dirind"><div></div></div>
+  <div id="crosshair"><i></i><i></i><i></i><i></i><b></b></div>
+  <div id="hitm"></div>
+  <div id="toast"></div>
+  <div class="panel" id="vitals">
+    <div class="row"><span>الصحة HP</span><span id="hpTxt">100</span></div>
+    <div class="bar"><div id="hpFill"></div></div>
+  </div>
+  <div class="panel" id="ammoBox"><span id="ammoTxt">30 <small>/ 90</small></span><div id="reloadTxt"></div></div>
+</div>
+
+<!-- نافذة السؤال -->
+<div id="quiz" class="screen">
+  <div class="quizBox">
+    <div class="qhead"><span class="tag">📡 معلومة استخباراتية</span><span id="qNum">السؤال 1 من 10</span></div>
+    <div id="qText"></div>
+    <div id="qOpts"></div>
+    <div id="qFeed"></div>
+    <div style="text-align:center"><button id="qNext" class="btn">العودة إلى المعركة</button></div>
+    <div class="hint">اختر الإجابة بالنقر أو بالمفاتيح 1 – 4</div>
+  </div>
+</div>
+
+<!-- إيقاف مؤقت -->
+<div id="pause" class="screen">
+  <div class="card">
+    <h2>المهمة متوقفة مؤقتاً</h2>
+    <p class="brief">انقر في أي مكان للعودة إلى المعركة</p>
+    <div class="ctrls">
+      <div>الحركة <b>W A S D</b></div><div>القفز <b>Space</b></div>
+      <div>الجري <b>Shift</b></div><div>إعادة التلقيم <b>R</b></div>
+      <div>التصويب <b>الماوس</b></div><div>إطلاق النار <b>زر الماوس الأيسر</b></div>
+    </div>
+  </div>
+</div>
+
+<!-- النهاية -->
+<div id="end" class="screen">
+  <div class="report" id="report">
+    <div class="banner" id="endBanner"></div>
+    <div class="doc">تقرير أداء الطالب · تقنية المعلومات · مناهج سلطنة عُمان</div>
+    <table>
+      <tr><td>حالة المهمة</td><td id="rStatus"></td></tr>
+      <tr><td>اسم الطالب</td><td id="rName"></td></tr>
+      <tr><td>الصف الدراسي</td><td id="rGrade"></td></tr>
+      <tr><td>الأعداء المقضي عليهم</td><td id="rKills"></td></tr>
+      <tr><td>الإجابات الصحيحة</td><td id="rCorrect"></td></tr>
+      <tr><td>النسبة المئوية</td><td id="rPct"></td></tr>
+      <tr><td>النقاط</td><td id="rScore"></td></tr>
+      <tr class="final"><td>الدرجة النهائية</td><td id="rFinal"></td></tr>
+    </table>
+    <div class="foot" id="rDate"></div>
+    <div class="foot noprint" id="rSend"></div>
+    <div class="foot">الدرجة النهائية = 80% من نسبة الإجابات الصحيحة + 20% من نسبة الأعداء المقضي عليهم</div>
+    <div class="btns noprint">
+      <button class="btn" id="printBtn">🖨 طباعة التقرير</button>
+      <button class="btn" id="againBtn">العب مجدداً (طالب جديد)</button>
+      <button class="btn alt" id="retryBtn">إعادة المحاولة بنفس الطالب</button>
+    </div>
+  </div>
+</div>
+<div id="touch">
+  <div id="tzMove"></div><div id="tzLook"></div>
+  <div id="tStick"><div id="tKnob"></div></div>
+  <div class="tb" id="tbSprint">جري</div>
+  <div class="tb" id="tbReload">تلقيم</div>
+  <div class="tb" id="tbJump">قفز</div>
+  <div class="tb" id="tbFire">🔥<br>نار</div>
+</div>
+<div id="rot"><div>📱↻<br>أدر هاتفك إلى الوضع الأفقي<br>لمتابعة المهمة</div></div>
+<div id="confetti"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rand=(a,b)=>a+Math.random()*(b-a);
+// ✏️ ضع هنا رابط تطبيق الويب من Google Apps Script (ينتهي بـ /exec). اتركه فارغاً لإيقاف حفظ النتائج.
+const RESULTS_URL='';
+function sendResult(d,cb){
+  if(!RESULTS_URL){cb('off');return;}
+  let tries=0;
+  (function go(){
+    tries++;
+    try{
+      fetch(RESULTS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(d)})
+        .then(()=>cb('ok')).catch(()=>{if(tries<3)setTimeout(go,1500*tries);else cb('fail');});
+    }catch(e){cb('fail');}
+  })();
+}
+// هاتف/لوح: المؤشر الأساسي باللمس. الحواسيب بشاشة لمس تبقى بنمط الماوس والكيبورد.
+const IS_TOUCH=(function(){
+  try{
+    const mq=q=>window.matchMedia&&matchMedia(q).matches;
+    if(mq('(pointer:coarse)')&&!mq('(pointer:fine)'))return true;
+    if(mq('(pointer:coarse)')&&mq('(hover:none)'))return true;
+    if(!window.matchMedia&&'ontouchstart' in window)return true;
+  }catch(e){}
+  return false;
+})();
+if(IS_TOUCH)document.body.classList.add('touch');
+const TCH={jx:0,jy:0,sprint:false,jump:false};
+function goFullscreen(){
+  try{const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;if(f){const p=f.call(el);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
+  try{if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{});}catch(e){}
+}
+
+/* =====================================================================
+   بنك الأسئلة: [السؤال, الإجابة الصحيحة, خاطئة1, خاطئة2, خاطئة3, توضيح]
+   ===================================================================== */
+const RAW={};
+RAW[5]=[
+['أي مما يلي يُعد من وحدات الإدخال؟','لوحة المفاتيح','الشاشة','السماعات','الطابعة','لوحة المفاتيح تُدخل البيانات إلى الحاسوب، أما الشاشة والسماعات والطابعة فهي وحدات إخراج.'],
+['ما الجزء الذي يُعتبر عقل الحاسوب المفكّر؟','وحدة المعالجة المركزية CPU','الشاشة','الماوس','مكبر الصوت','وحدة المعالجة المركزية تنفّذ التعليمات وتعالج البيانات.'],
+['أي جهاز يُستخدم لإخراج المستند على الورق؟','الطابعة','الماسح الضوئي','الميكروفون','الماوس','الطابعة وحدة إخراج تحوّل الملف الرقمي إلى نسخة ورقية.'],
+['الذاكرة التي تفقد محتوياتها عند إطفاء الحاسوب هي:','ذاكرة الوصول العشوائي RAM','القرص الصلب','ذاكرة الفلاش USB','القرص المدمج CD','ذاكرة RAM ذاكرة مؤقتة تعمل أثناء تشغيل الجهاز فقط.'],
+['أي مما يلي يُعد نظام تشغيل؟','Windows','Word','Paint','Scratch','Windows نظام تشغيل يدير مكونات الحاسوب والبرامج.'],
+['الأيقونات الصغيرة الموجودة على سطح المكتب تمثّل غالباً:','اختصارات للبرامج والملفات','أجزاء الذاكرة','وحدات الإدخال','فيروسات','الاختصارات تتيح فتح البرامج والملفات بسرعة.'],
+['لحفظ الملف بسرعة نضغط على المفتاحين Ctrl مع:','S','P','X','N','الاختصار `Ctrl+S` يحفظ الملف الحالي.'],
+['الاختصار المستخدم لنسخ نص محدد هو:','Ctrl + C','Ctrl + V','Ctrl + X','Ctrl + Z','`Ctrl+C` للنسخ، و`Ctrl+V` للّصق، و`Ctrl+X` للقصّ.'],
+['أي أمر يُستخدم للتراجع عن آخر تعديل في برنامج معالجة النصوص؟','Ctrl + Z','Ctrl + S','Ctrl + P','Ctrl + A','`Ctrl+Z` يلغي آخر إجراء قمت به.'],
+['برنامج Microsoft Word هو برنامج:','معالجة نصوص','عروض تقديمية','جداول إلكترونية','قواعد بيانات','Word مخصص لكتابة المستندات وتنسيقها.'],
+['عند ترتيب النص في منتصف الصفحة نستخدم أمر:','توسيط','محاذاة لليمين','محاذاة لليسار','تسطير','أمر التوسيط يضع النص في منتصف السطر.'],
+['تسمى كل صفحة في العرض التقديمي:','شريحة','ورقة عمل','سجل','إطار شبكة','العرض التقديمي يتكون من مجموعة من الشرائح Slides.'],
+['أي برنامج يُستخدم لإنشاء العروض التقديمية؟','PowerPoint','Excel','Notepad','Calculator','PowerPoint برنامج لتصميم الشرائح والعروض.'],
+['في برنامج Scratch يسمى الشخصية التي تتحرك على المسرح:','الكائن Sprite','المتغير','الحلقة','الشرط','الكائن Sprite هو الشخصية التي نبرمجها لتتحرك وتتكلم.'],
+['كتلة «عند النقر على العلم الأخضر» في Scratch تنتمي إلى فئة:','الأحداث','الحركة','المظهر','الصوت','كتل الأحداث تبدأ تشغيل البرنامج عند وقوع حدث معين.'],
+['أي كلمة مرور هي الأقوى؟','Hx7$kP2!q9','123456','اسمك فقط','تاريخ ميلادك','كلمة المرور القوية تجمع حروفاً وأرقاماً ورموزاً ولا تتعلق بمعلوماتك الشخصية.'],
+['إذا طلب منك شخص غريب عبر الإنترنت معلوماتك الشخصية فماذا تفعل؟','أتجاهله وأخبر ولي أمري أو معلمي','أرسل المعلومات له','أعطيه رقم هاتفي فقط','أرد عليه بعنوان منزلي','لا نشارك معلوماتنا الشخصية مع الغرباء ونبلّغ شخصاً بالغاً موثوقاً.'],
+['وظيفة برنامج مضاد الفيروسات هي:','حماية الحاسوب من البرامج الضارة','طباعة المستندات','تسريع الإنترنت','رسم الصور','مضاد الفيروسات يكشف البرامج الضارة ويزيلها.']
+];
+RAW[6]=[
+['أي مما يلي من وحدات الإخراج؟','السماعات','لوحة المفاتيح','الماوس','الماسح الضوئي','السماعات تُخرج الصوت من الحاسوب.'],
+['وحدة قياس سعة التخزين الأكبر من الميغابايت MB هي:','الغيغابايت GB','البت Bit','البايت Byte','الكيلوبايت KB','الترتيب: بايت ثم KB ثم MB ثم GB.'],
+['أي جهاز يُعد وسيط تخزين خارجياً؟','ذاكرة الفلاش USB','الماوس','الطابعة','السماعة','ذاكرة الفلاش تحفظ الملفات ويمكن نقلها بين الأجهزة.'],
+['وظيفة نظام التشغيل الأساسية هي:','إدارة مكونات الحاسوب وتشغيل البرامج','تصميم العروض','كتابة التقارير فقط','تصفح مواقع الويب فقط','نظام التشغيل هو الوسيط بين المستخدم والعتاد والبرامج.'],
+['الحاوية التي نستخدمها لتنظيم الملفات داخل الحاسوب تسمى:','مجلداً Folder','شريحة','خلية','كائناً','المجلدات تساعد على ترتيب الملفات وتصنيفها.'],
+['لإدراج صورة داخل مستند Word نستخدم تبويب:','إدراج Insert','عرض View','مراجعة Review','تخطيط الصفحة Layout','تبويب إدراج يتيح إضافة الصور والجداول والأشكال.'],
+['لجعل النص غامقاً في Word نضغط على الزر:','B','I','U','A','الزر B هو للخط الغامق Bold.'],
+['أي أمر يجعل النص مائلاً؟','Italic','Bold','Underline','Delete','الخط المائل Italic يُرمز له بالحرف I.'],
+['التأثير الذي يظهر عند الانتقال من شريحة إلى أخرى يسمى:','الانتقال Transition','المتغير','القالب','الحلقة','الانتقالات تجعل العرض التقديمي أكثر جاذبية.'],
+['أي مما يلي يُفضّل عند تصميم شريحة جيدة؟','نص مختصر وصور واضحة','نص طويل جداً','ألوان متضاربة','خط صغير جداً','الشريحة الجيدة بسيطة وواضحة وسهلة القراءة.'],
+['في Scratch تُستخدم كتلة «كرّر» (Repeat) لتنفيذ:','الأوامر عدة مرات','الأوامر مرة واحدة','حذف الكائن','إغلاق البرنامج','الحلقات التكرارية توفر علينا كتابة الأوامر نفسها عدة مرات.'],
+['المتغير في Scratch يُستخدم من أجل:','تخزين قيمة قابلة للتغيّر مثل النقاط','رسم الخلفية','تسجيل الصوت','طباعة المشروع','المتغير مكان في الذاكرة يحمل قيمة يمكن تغييرها أثناء البرنامج.'],
+['كتلة «إذا» (If) في Scratch تمثّل:','الشرط','الحلقة','الحدث','الصوت','الشرط ينفّذ أوامر معينة فقط إذا تحقق الشرط.'],
+['الأثر الذي نتركه عند استخدام الإنترنت يسمى:','البصمة الرقمية','الشاشة الرقمية','المعالج','الذاكرة','كل ما ننشره أو نبحث عنه يترك بصمة رقمية يصعب محوها.'],
+['ما التصرف الصحيح عند التعرض للتنمر الإلكتروني؟','إبلاغ شخص بالغ موثوق وحفظ الدليل','الرد بالمثل','حذف حسابي فوراً دون إخبار أحد','الصمت دائماً','نبلّغ بالغاً موثوقاً ونحتفظ بالرسائل كدليل.'],
+['قبل نشر صورة لصديقك على الإنترنت يجب أن:','تستأذنه وتحترم خصوصيته','تنشرها فوراً','تضع اسمه وعنوانه','تعدّلها دون علمه','احترام الخصوصية جزء من المواطنة الرقمية.'],
+['الرابط الغريب المرسل في رسالة من مجهول ينبغي أن:','لا نفتحه','نفتحه بسرعة','نرسله لكل أصدقائنا','نكتب عليه كلمة مرورنا','الروابط المجهولة قد تحمل برامج ضارة أو تسرق بياناتك.'],
+['أي مما يلي يُعد من حقوق الملكية الفكرية؟','عدم نسخ أعمال الآخرين دون إذن','نسخ أي صورة وبيعها','نشر كتاب غيرك باسمك','تحميل البرامج المقرصنة','احترام حقوق المؤلفين يعني نسب العمل لصاحبه وعدم سرقته.']
+];
+RAW[7]=[
+['تتكون ورقة العمل في Excel من:','صفوف وأعمدة تتقاطع في خلايا','شرائح وانتقالات','فقرات وصور فقط','كائنات وأحداث','الخلية هي نقطة تقاطع العمود مع الصف.'],
+['ما اسم الخلية الواقعة في العمود B والصف 3؟','B3','3B','B-3','C2','اسم الخلية يكتب حرف العمود ثم رقم الصف.'],
+['تبدأ المعادلة في Excel بالرمز:','=','#','@','$','أي معادلة أو دالة في Excel تبدأ بعلامة المساواة.'],
+['الدالة المستخدمة لجمع النطاق A1:A5 هي:','=SUM(A1:A5)','=ADD(A1:A5)','=TOTAL(A1:A5)','=PLUS(A1:A5)','الدالة `SUM` تجمع قيم الخلايا المحددة.'],
+['الدالة التي تحسب المتوسط الحسابي لمجموعة قيم هي:','AVERAGE','COUNT','MAX','SUM','`AVERAGE` تجمع القيم وتقسمها على عددها.'],
+['أي دالة تُرجع أكبر قيمة في نطاق من الخلايا؟','MAX','MIN','COUNT','ROUND','`MAX` تعطي أكبر رقم في النطاق.'],
+['أي مخطط مناسب لمقارنة قيم عدة فئات باستخدام أعمدة؟','المخطط العمودي','المخطط الدائري فقط','مخطط الشرائح','مخطط التدفق','المخطط العمودي يقارن بين القيم بصرياً.'],
+['شبكة تربط أجهزة داخل مدرسة أو مبنى واحد تسمى:','LAN','WAN','MAN','GPS','LAN شبكة محلية تغطي منطقة صغيرة.'],
+['الجهاز الذي يوزّع الإنترنت لاسلكياً في المنزل هو:','الراوتر Router','الطابعة','الماسح الضوئي','السماعة','الراوتر يوصل شبكتك المحلية بالإنترنت ويوزعه.'],
+['البرنامج المستخدم لتصفح صفحات الويب هو:','المتصفح Browser','محرر الصور','الحاسبة','مشغل الأغاني','Chrome وEdge وFirefox أمثلة على المتصفحات.'],
+['عنوان موقع على الإنترنت مثل www.example.com يسمى:','عنوان URL','برنامج','بروتوكول أمني','كلمة مرور','URL هو العنوان الذي يحدد مكان الصفحة على الويب.'],
+['لغة HTML تُستخدم من أجل:','بناء هيكل صفحات الويب','حساب المعادلات','تحرير الفيديو','إدارة الشبكات','HTML لغة وسوم تصف محتوى الصفحة وبنيتها.'],
+['الوسم المستخدم لإنشاء عنوان رئيسي في HTML هو:','`<h1>`','`<p>`','`<img>`','`<br>`','`<h1>` أكبر عنوان، و`<p>` للفقرة.'],
+['الوسم المستخدم لإدراج صورة في صفحة ويب هو:','`<img>`','`<a>`','`<ul>`','`<table>`','`<img src="..">` يعرض صورة في الصفحة.'],
+['وظيفة لغة CSS هي:','تنسيق مظهر صفحة الويب','تخزين البيانات','حماية الشبكة','ضغط الصور','CSS تتحكم بالألوان والخطوط والتخطيط.'],
+['ما ناتج تنفيذ الأمر `print("Hello")` في بايثون؟','Hello','print','"Hello" مع علامات الاقتباس مرتين','لا شيء','الدالة `print` تعرض النص الموجود بين علامتي الاقتباس.'],
+['أي امتداد هو لملف صورة؟','jpg','mp3','docx','exe','JPG امتداد صيغة صورة، وMP3 صوت.'],
+['أصغر عنصر في الصورة الرقمية يسمى:','البكسل Pixel','البايت','الخلية','الوسم','الصورة الرقمية مكوّنة من آلاف البكسلات.']
+];
+RAW[8]=[
+['لجعل مرجع الخلية ثابتاً عند نسخ المعادلة نستخدم رمز:','$','#','&','%','المرجع المطلق مثل `$A$1` لا يتغير عند النسخ.'],
+['أي دالة تحسب عدد الخلايا التي تحتوي أرقاماً؟','COUNT','SUM','LEN','ROUND','`COUNT` تعدّ الخلايا الرقمية في النطاق.'],
+['ما ناتج المعادلة `=IF(A1>50,"ناجح","راسب")` إذا كانت A1 تساوي 70؟','ناجح','راسب','50','خطأ','الشرط محقق لأن 70 أكبر من 50 فيعرض القيمة الأولى.'],
+['أي خيار يرتّب البيانات من الأصغر إلى الأكبر في Excel؟','Sort','Filter','Merge','Insert','أمر `Sort` يرتّب البيانات، بينما `Filter` يعرض صفوفاً معينة.'],
+['البروتوكول المستخدم لنقل صفحات الويب بين المتصفح والخادم هو:','HTTP','SMTP','DHCP','POP3','HTTP هو البروتوكول المستخدم لطلب صفحات الويب.'],
+['العنوان الذي يميز كل جهاز على الشبكة هو:','عنوان IP','اسم المستخدم','الامتداد','الخلية','عنوان IP يحدد الجهاز في الشبكة ليصله الاتصال.'],
+['أي شبكة تربط حواسيب في مدن أو دول مختلفة؟','WAN','LAN','PAN','USB','WAN شبكة واسعة النطاق، والإنترنت أكبر مثال عليها.'],
+['وسم إنشاء رابط تشعبي في HTML هو:','`<a>`','`<link>` فقط','`<p>`','`<div>` فقط','`<a href="url">نص</a>` ينشئ رابطاً.'],
+['أي وسم يُنشئ قائمة غير مرقمة؟','`<ul>`','`<ol>`','`<li>`','`<tr>`','`<ul>` قائمة نقطية، و`<ol>` قائمة مرقمة.'],
+['خاصية CSS المسؤولة عن لون النص هي:','color','background-size','font-size','margin','`color` تحدد لون النص، و`font-size` تحدد حجمه.'],
+['في HTML يتم إنشاء جدول باستخدام الوسم:','`<table>`','`<tab>`','`<grid>`','`<list>`','`<table>` مع `<tr>` للصفوف و`<td>` للخلايا.'],
+['أي سطر في بايثون يأخذ مدخلاً من المستخدم؟','`x = input("ادخل رقماً")`','`x = print()`','`input = x`','`get x`','الدالة `input` تقرأ ما يكتبه المستخدم.'],
+['ما ناتج `print(2 + 3 * 2)` في بايثون؟','8','10','12','7','الضرب أولاً: 3×2=6 ثم 2+6=8.'],
+['أي نوع بيانات يمثل الرقم الصحيح في بايثون؟','int','str','bool','list','`int` للأعداد الصحيحة و`str` للنصوص.'],
+['التركيب الصحيح لحلقة تكرار 5 مرات في بايثون هو:','`for i in range(5):`','`repeat 5 times`','`loop(5)`','`while 5:` فقط','`for ... in range(5)` تكرر الكتلة خمس مرات.'],
+['أي صيغة صوتية مضغوطة شائعة؟','MP3','PNG','DOCX','HTML','MP3 صيغة ضغط للصوت، وPNG للصور.'],
+['كلما زادت دقة الصورة (عدد البكسلات):','زادت جودتها وحجم ملفها','قل حجم ملفها دائماً','أصبحت بالأبيض والأسود','تحوّلت إلى صوت','زيادة البكسلات ترفع التفاصيل والحجم.'],
+['أي برنامج يُستخدم لتحرير الفيديو؟','Movie Maker أو برنامج مونتاج','Notepad','Calculator','Task Manager','برامج المونتاج تقص الفيديو وتضيف التأثيرات والصوت.']
+];
+RAW[9]=[
+['قاعدة البيانات هي:','مجموعة منظمة من البيانات المترابطة','برنامج لتحرير الصور','جهاز لتخزين الملفات فقط','لغة لتصميم الصفحات','تخزن قاعدة البيانات البيانات بشكل منظم يسهّل البحث والتعديل.'],
+['في الجدول، يسمى كل صف يمثل مجموعة بيانات كاملة عن شيء واحد:','سجلاً Record','حقلاً Field','مفتاحاً','استعلاماً','السجل صف كامل، أما الحقل فهو عمود يمثل خاصية واحدة.'],
+['الحقل الذي يميّز كل سجل عن غيره ولا يتكرر يسمى:','المفتاح الأساسي Primary Key','المفتاح الأجنبي','الفهرس النصي','الحقل المحسوب','المفتاح الأساسي فريد لكل سجل مثل رقم الطالب.'],
+['أي أمر SQL يُستخدم لاسترجاع البيانات من جدول؟','SELECT','INSERT','DELETE','UPDATE','`SELECT` يستعلم عن البيانات.'],
+['أي أمر SQL يضيف سجلاً جديداً؟','INSERT INTO','SELECT','DROP','ORDER BY','`INSERT INTO` يضيف صفاً جديداً للجدول.'],
+['ما عمل جزء WHERE في استعلام SQL؟','تحديد شرط لتصفية السجلات','ترتيب النتائج','حذف الجدول','إنشاء قاعدة بيانات','`WHERE` تحدد السجلات التي تحقق الشرط.'],
+['في بايثون، تُستخدم القائمة `[1, 2, 3]` لتخزين:','مجموعة عناصر مرتبة','قيمة واحدة فقط','دالة','ملف','القوائم Lists تخزن عدة قيم يمكن الوصول لها بالفهرس.'],
+['ما ناتج `len("Oman")` في بايثون؟','4','3','5','Oman','الدالة `len` تعيد عدد حروف النص وهو 4.'],
+['أي كلمة مفتاحية في بايثون تُستخدم لتعريف دالة؟','def','func','function','define','`def` تُستخدم لإنشاء دالة جديدة.'],
+['ما الفرق الأساسي بين حلقتي for و while؟','for لعدد معروف من التكرار وwhile حتى يتحقق شرط','لا فرق إطلاقاً','while للنصوص فقط','for لا تعمل مع الأرقام','while تستمر طالما الشرط صحيح بينما for تمر على نطاق أو قائمة.'],
+['برنامج يتنكر على أنه برنامج مفيد لكنه يحمل شيفرة ضارة يسمى:','حصان طروادة Trojan','جدار ناري','مضاد فيروسات','نظام تشغيل','حصان طروادة يخدع المستخدم ليثبته ثم ينفذ أعماله الضارة.'],
+['الهجوم الذي يخدعك برسائل مزيفة لسرقة بياناتك يسمى:','التصيّد الاحتيالي Phishing','التشفير','النسخ الاحتياطي','التحديث','التصيد ينتحل صفة جهة موثوقة لسرقة كلمات المرور.'],
+['وظيفة الجدار الناري Firewall هي:','مراقبة حركة الشبكة ومنع الاتصالات غير المسموحة','ضغط الملفات','تسريع الطباعة','تحرير الفيديو','الجدار الناري يحمي الشبكة بفلترة الحزم الداخلة والخارجة.'],
+['تحويل البيانات إلى شكل غير مفهوم لحمايتها يسمى:','التشفير Encryption','التجزئة فقط','الأرشفة','الضغط','التشفير يحمي سرية البيانات بحيث لا يقرأها إلا من يملك المفتاح.'],
+['أي خيار هو مثال على المصادقة الثنائية 2FA؟','كلمة مرور ثم رمز يصل إلى هاتفك','كلمتا مرور متشابهتان','اسم المستخدم فقط','سؤال واحد بسيط','تجمع المصادقة الثنائية بين شيئين مختلفين لإثبات الهوية.'],
+['الذكاء الاصطناعي AI هو:','أنظمة تحاكي بعض قدرات الذكاء البشري كالتعلّم واتخاذ القرار','نوع من الشاشات','بروتوكول شبكة','وسيط تخزين','AI يمكّن الآلات من التعلم والتنبؤ وحل المشكلات.'],
+['إنترنت الأشياء IoT يعني:','ربط الأجهزة اليومية بالإنترنت لتتبادل البيانات','تصفح الإنترنت بالهاتف فقط','لعبة إلكترونية','نوع من الطابعات','أمثلة IoT: الأجهزة المنزلية الذكية وساعات اللياقة.'],
+['أي مما يلي مثال على تطبيق للتعلّم الآلي؟','اقتراح مقاطع الفيديو بحسب اهتماماتك','طباعة صفحة','نسخ ملف','إطفاء الحاسوب','أنظمة التوصية تتعلم من سلوكك لتقترح المحتوى.']
+];
+RAW[10]=[
+['علاقة «واحد إلى متعدد» بين جدولين تتحقق باستخدام:','المفتاح الأجنبي Foreign Key','حقل نصي طويل','تكرار البيانات','المفتاح الأساسي فقط','المفتاح الأجنبي في الجدول الثاني يشير إلى المفتاح الأساسي في الأول.'],
+['أي أمر SQL يعدّل بيانات سجل موجود؟','UPDATE','INSERT','SELECT','CREATE','`UPDATE` يغيّر قيم الأعمدة في السجلات.'],
+['ما نتيجة الاستعلام `SELECT * FROM students WHERE grade = 10`؟','عرض كل بيانات طلاب الصف العاشر','حذف طلاب الصف العاشر','إضافة طالب جديد','إنشاء جدول','علامة `*` تعني كل الأعمدة، و`WHERE` تصفي السجلات.'],
+['عبارة `ORDER BY name DESC` تعني:','ترتيب النتائج تنازلياً حسب الاسم','حذف الاسم','ترتيب تصاعدي','تجميع الأسماء','`DESC` تنازلي، و`ASC` تصاعدي.'],
+['أي أمر يحذف سجلات محددة من جدول؟','DELETE FROM','DROP DATABASE','SELECT','ALTER','`DELETE FROM table WHERE ...` يحذف السجلات المطابقة للشرط.'],
+['ما ناتج `print(10 // 3)` في بايثون؟','3','3.33','1','4','العامل `//` هو القسمة الصحيحة ويعطي 3.'],
+['ما ناتج `print(10 % 3)` في بايثون؟','1','3','0','3.33','العامل `%` يعطي باقي القسمة وهو 1.'],
+['أي كتلة تعالج الأخطاء أثناء التنفيذ في بايثون؟','try / except','if / else','for / in','def / return','`try` تجرب الشيفرة و`except` تلتقط الخطأ.'],
+['في JavaScript، يُستخدم الأمر `let` من أجل:','تعريف متغير','إنهاء البرنامج','طباعة صفحة','رسم صورة','`let x = 5;` يعرّف متغيراً اسمه x.'],
+['أي دالة في JavaScript تعرض رسالة في وحدة تحكم المتصفح؟','console.log()','print.screen()','echo()','output()','`console.log` تفيد في اختبار البرامج وتتبع الأخطاء.'],
+['الخوارزمية التي تُستخدم لإخفاء محتوى الرسالة بمفتاح سري تسمى:','خوارزمية تشفير','خوارزمية ضغط','خوارزمية ترتيب','خوارزمية بحث','التشفير يحوّل النص الصريح إلى نص مشفر.'],
+['هجوم يرسل كماً هائلاً من الطلبات لإيقاف خدمة معينة يسمى:','حجب الخدمة DoS/DDoS','التصيد','حقن SQL','الهندسة الاجتماعية','DDoS يغرق الخادم بالطلبات حتى لا يستجيب للمستخدمين.'],
+['حقن SQL Injection هو هجوم يعتمد على:','إدخال أوامر SQL خبيثة في حقول الإدخال','تعطيل الكهرباء','سرقة الجهاز','تغيير لون الصفحة','عدم تنقية المدخلات يسمح بتنفيذ استعلامات ضارة.'],
+['أي ممارسة تقلل خطر الاختراق؟','تحديث البرامج باستمرار','استخدام كلمة المرور نفسها دائماً','تعطيل الجدار الناري','فتح مرفقات مجهولة','التحديثات تسدّ الثغرات الأمنية المعروفة.'],
+['من خصائص الهندسة الاجتماعية أنها:','تستهدف الإنسان لا الجهاز','تستخدم كابلات خاصة فقط','تعمل بلا تواصل','تحتاج معالجاً قوياً','المهاجم يخدع الضحية لتكشف معلومات حساسة.'],
+['أي مثال على الذكاء الاصطناعي الضيّق Narrow AI؟','مساعد صوتي يجيب عن أسئلة','آلة تفكر كالإنسان في كل المجالات','برنامج طباعة','محرك قرص','الذكاء الضيق يؤدي مهمة محددة بكفاءة.'],
+['في IoT، ما دور المستشعر Sensor؟','جمع بيانات من البيئة كالحرارة والحركة','طباعة التقارير','تخزين الصور','تشفير كلمات المرور','المستشعرات تقيس الظروف وترسلها للمعالجة.'],
+['من تحديات إنترنت الأشياء:','أمن الأجهزة وخصوصية البيانات','قلة أجهزة الاستشعار تماماً','عدم وجود شبكات','استحالة الاتصال','الأجهزة المتصلة قد تكون هدفاً للاختراق إن لم تُؤمَّن.']
+];
+RAW[11]=[
+['أي مرحلة من دورة حياة تطوير النظام SDLC يتم فيها جمع متطلبات المستخدمين وفهم المشكلة؟','التحليل','الصيانة','التنفيذ','التشغيل','في مرحلة التحليل تُحدَّد المتطلبات الوظيفية وغير الوظيفية للنظام.'],
+['تهدف دراسة الجدوى إلى:','تقييم إمكانية نجاح المشروع فنياً واقتصادياً وتشغيلياً','كتابة الشيفرة البرمجية','تدريب المستخدمين فقط','صيانة النظام بعد التسليم','تُجرى الدراسة قبل البدء لمعرفة هل المشروع مجدٍ أم لا.'],
+['الأداة التي تمثّل حركة البيانات بين العمليات والمخازن والكيانات الخارجية هي:','مخطط تدفق البيانات DFD','مخطط جانت فقط','جدول الضرب','مخطط الفن','DFD يوضح كيف تنتقل البيانات داخل النظام.'],
+['في نموذج الشلال Waterfall:','لا تبدأ المرحلة التالية قبل إنهاء السابقة','تتم المراحل كلها معاً','يشارك العميل في كل يوم','لا توجد مرحلة اختبار','النموذج خطي تتابعي بين المراحل.'],
+['اختبار الوحدة Unit Testing يختبر:','أصغر أجزاء الشيفرة كدالة منفردة','النظام كاملاً مع المستخدم','الشبكة فقط','الأجهزة المادية','يتحقق المطوّر من صحة كل وحدة قبل دمجها.'],
+['مرحلة الصيانة في SDLC تشمل:','إصلاح الأخطاء وتحسين النظام بعد التسليم','تحديد الفكرة فقط','تصميم الشعار','شراء الأجهزة فقط','الصيانة تضمن استمرار النظام ومواكبته للتغيّرات.'],
+['يتميز بروتوكول TCP بأنه:','يضمن توصيل البيانات بشكل موثوق ومرتب','لا يتحقق من وصول البيانات','يُستخدم للبث فقط','يعمل دون عناوين','TCP يعيد إرسال الحزم المفقودة ويرتّبها.'],
+['وظيفة نظام أسماء النطاقات DNS هي:','ترجمة أسماء المواقع إلى عناوين IP','تشفير الرسائل','توزيع الكهرباء','ضغط الصور','يتيح لنا كتابة اسم الموقع بدل رقم IP.'],
+['بروتوكول DHCP يقوم بـ:','منح عناوين IP للأجهزة تلقائياً','حماية الأجهزة من الفيروسات','تحميل الملفات','إرسال البريد','يوفر الإعداد التلقائي لعناوين الشبكة.'],
+['عدد البتات في عنوان IPv4 هو:','32','64','128','16','IPv4 مكوّن من 32 بتاً بينما IPv6 من 128 بتاً.'],
+['المنفذ الافتراضي لبروتوكول HTTPS هو:','443','80','21','25','HTTP يستخدم 80 وFTP يستخدم 21 وSMTP يستخدم 25.'],
+['التشفير المتماثل يعني:','استخدام مفتاح واحد للتشفير وفك التشفير','استخدام مفتاحين مختلفين','عدم استخدام مفاتيح','التشفير بلا خوارزمية','يجب مشاركة المفتاح السري بين الطرفين بأمان.'],
+['هجوم الرجل في المنتصف Man-in-the-Middle يقوم على:','اعتراض الاتصال بين طرفين والتنصّت عليه','تعطيل الخادم بكثرة الطلبات','تثبيت برنامج على الجهاز دون إذن فقط','سرقة الجهاز مادياً','المهاجم يقف بين المرسل والمستقبل فيقرأ أو يعدّل الرسائل.'],
+['التطبيق الأصيل Native في الهواتف الذكية هو تطبيق:','يُطوَّر لنظام تشغيل محدد مثل Android أو iOS','يعمل في المتصفح فقط','لا يحتاج لنظام تشغيل','يعمل على الطابعة','يستفيد التطبيق الأصيل من إمكانات الجهاز مباشرة.'],
+['تجربة المستخدم UX تهتم بـ:','سهولة الاستخدام ورضا المستخدم عن التطبيق','سرعة المعالج فقط','سعة التخزين','لون الجهاز','UX تدرس كيف يشعر المستخدم ويتفاعل مع التطبيق.'],
+['التطبيع Normalization في قواعد البيانات يهدف إلى:','تقليل تكرار البيانات وتحسين تصميم الجداول','زيادة التكرار','حذف المفاتيح','إلغاء العلاقات','التطبيع ينظّم الجداول لتفادي الشذوذ في الإضافة والحذف والتعديل.'],
+['عبارة `JOIN` في SQL تُستخدم من أجل:','دمج صفوف من جدولين بناءً على عمود مشترك','حذف جدول','تشفير البيانات','إنشاء مستخدم','يُربَط الجدولان عادة عبر المفتاح الأجنبي والمفتاح الأساسي.'],
+['وظيفة `GROUP BY` في SQL هي:','تجميع السجلات المتشابهة لتطبيق دوال تجميعية','ترتيب الأعمدة أبجدياً','حذف التكرار نهائياً من الجدول','إنشاء فهرس','تُستخدم مع `COUNT` و`SUM` و`AVG` لإيجاد ملخصات.']
+];
+RAW[12]=[
+['ما أبرز ما يميز منهجية Agile في تطوير البرمجيات؟','تطوير تكراري على دفعات قصيرة مع مشاركة العميل','الانتهاء من كل التوثيق قبل أي شيفرة','عدم تغيير المتطلبات أبداً','غياب الاختبار','Agile يرحّب بالتغيير ويسلّم إصدارات صغيرة بشكل متكرر.'],
+['مخطط حالات الاستخدام Use Case في UML يوضح:','تفاعل المستخدمين مع وظائف النظام','بنية قاعدة البيانات الفيزيائية','أسلاك الشبكة','ترتيب الذاكرة','يُظهر الجهات الفاعلة Actors والوظائف التي تقدمها لهم.'],
+['اختبار القبول Acceptance Testing يقوم به عادةً:','العميل أو المستخدم النهائي للتأكد من تلبية المتطلبات','المطوّر وحده','مصنّع الأجهزة','مزوّد الإنترنت','هو آخر خطوة قبل اعتماد النظام وتسلّمه.'],
+['اختبار الصندوق الأسود Black-box يركز على:','مخرجات النظام لمدخلات معينة دون النظر للشيفرة','قراءة كل سطر في الشيفرة','أجهزة الشبكة','تصميم الواجهة فقط','المختبر لا يحتاج لمعرفة البنية الداخلية.'],
+['النموذج الأولي Prototype يُستخدم من أجل:','عرض نسخة مبدئية للمستخدم وجمع ملاحظاته مبكراً','إنهاء المشروع نهائياً','حذف المتطلبات','تعطيل الاختبار','يساعد على اكتشاف سوء الفهم قبل التطوير الكامل.'],
+['يتحقق الشكل الطبيعي الأول 1NF عندما:','تكون قيم الحقول ذرية ولا توجد مجموعات متكررة','يُحذف المفتاح الأساسي','تحتوي الخلية عدة قيم','تُدمج الجداول كلها في جدول واحد','يجب أن تحتوي كل خلية على قيمة واحدة غير قابلة للتجزئة.'],
+['يتطلب الشكل الطبيعي الثاني 2NF إزالة:','الاعتماد الجزئي على جزء من المفتاح المركب','المفتاح الأساسي كلياً','كل الحقول','الجداول','في 2NF يجب أن يعتمد كل حقل غير مفتاحي على كامل المفتاح.'],
+['يُعيد `INNER JOIN` في SQL:','السجلات المتطابقة في الجدولين فقط','كل سجلات الجدولين دون شرط','سجلات الجدول الأول فقط','سجلات غير مطابقة فقط','الاتصال الداخلي يعرض الصفوف التي تحقق شرط الربط في الجانبين.'],
+['يُعيد `LEFT JOIN`:','كل سجلات الجدول الأيسر مع المطابق من الأيمن إن وُجد','المتطابق فقط','سجلات الأيمن فقط','لا شيء','القيم غير المطابقة من اليمين تظهر NULL.'],
+['البروتوكولان TCP وUDP ينتميان في نموذج OSI إلى طبقة:','النقل Transport','الشبكة Network','التطبيق Application','الفيزيائية','طبقة النقل مسؤولة عن الاتصال بين التطبيقات على الأجهزة.'],
+['يتميز بروتوكول UDP بأنه:','سريع بلا ضمان للتسليم','يضمن التسليم دائماً','يعيد إرسال الحزم المفقودة','يحتاج إلى ثلاثية المصافحة','يناسب البث المباشر والألعاب حيث السرعة أهم من الدقة.'],
+['أقصى عدد من الأجهزة (المضيفين) الصالحة في الشبكة 192.168.1.0/24 هو:','254','255','256','24','يتبقى 8 بتات للمضيفين: 2^8 − 2 = 254 بعد استبعاد عنوان الشبكة والبث.'],
+['البروتوكول الذي يؤمّن اتصال HTTPS بتشفير البيانات هو:','TLS','FTP','DNS','ARP','TLS/SSL يشفّر الاتصال بين المتصفح والخادم.'],
+['في التشفير غير المتماثل يُستخدم:','مفتاح عام ومفتاح خاص','مفتاح واحد فقط','لا مفاتيح','كلمة مرور واحدة مشتركة','المفتاح العام يشفّر والخاص يفك التشفير.'],
+['التوقيع الرقمي يضمن:','هوية المرسل وسلامة الرسالة','سرعة الإنترنت','حجم الملف','لون النص','يُنشأ بالمفتاح الخاص ويُتحقق منه بالمفتاح العام.'],
+['اختبار الاختراق Penetration Testing هو:','محاكاة هجوم مصرح به لاكتشاف الثغرات','اختراق مجهول لسرقة البيانات','تحديث الشاشة','نسخ احتياطي للملفات','يقوم به مختصون بإذن لتحسين أمن النظام.'],
+['تعتمد واجهة REST API عادةً على بروتوكول:','HTTP','SMTP','POP3','SSH فقط','تتبادل التطبيقات والخوادم البيانات عبر طلبات HTTP مثل GET وPOST.'],
+['خاصية الذرية Atomicity في معاملات قواعد البيانات تعني:','تنفَّذ المعاملة بكاملها أو لا يُنفَّذ منها شيء','تنفّذ المعاملات بترتيب عشوائي','لا يمكن إلغاء المعاملة','تُحفَظ نصف المعاملة','هي أحد مبادئ ACID لضمان سلامة البيانات.']
+];
+
+/* =====================================================================
+   أدوات الأسئلة: خلط فيشر-ييتس
+   ===================================================================== */
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(s){return esc(s).replace(/`([^`]+)`/g,'<code dir="ltr">$1</code>');}
+const TOTAL=10;
+function buildQuestions(grade){
+  const pool=shuffle((RAW[grade]||[]).slice());
+  const seen={},out=[];
+  for(const r of pool){ if(seen[r[0]])continue; seen[r[0]]=1; out.push(r); if(out.length>=TOTAL)break; }
+  return out.map(r=>{
+    const opts=shuffle([r[1],r[2],r[3],r[4]]);
+    return {q:r[0],opts:opts,ans:opts.indexOf(r[1]),correct:r[1],exp:r[5]};
+  });
+}
+
+/* =====================================================================
+   الصوت (Web Audio API)
+   ===================================================================== */
+let AC=null,master=null,noiseBuf=null;
+function initAudio(){
+  if(AC){ if(AC.state==='suspended')AC.resume(); return; }
+  try{
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    master=AC.createGain(); master.gain.value=.55; master.connect(AC.destination);
+    const len=AC.sampleRate; noiseBuf=AC.createBuffer(1,len,AC.sampleRate);
+    const d=noiseBuf.getChannelData(0); for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  }catch(e){AC=null;}
+}
+function noise(dur,vol,freq,type,delay){
+  if(!AC)return;
+  const s=AC.createBufferSource(); s.buffer=noiseBuf;
+  const f=AC.createBiquadFilter(); f.type=type||'lowpass'; f.frequency.value=freq||2000;
+  const g=AC.createGain(); const t=AC.currentTime+(delay||0);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  s.connect(f); f.connect(g); g.connect(master); s.start(t,Math.random()*.5,dur+.05);
+}
+function tone(freq,dur,type,vol,slide,delay){
+  if(!AC)return;
+  const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+(delay||0);
+  o.type=type||'sine'; o.frequency.setValueAtTime(freq,t);
+  if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(20,freq+slide),t+dur);
+  g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+.03);
+}
+const sfx={
+  shoot(){noise(.14,.55,3200,'lowpass');noise(.34,.22,500,'lowpass');tone(150,.14,'square',.2,-100);},
+  enemyShoot(d){const v=clamp(1-d/70,.07,.45);noise(.12,v,2200,'lowpass');tone(110,.12,'square',v*.4,-60);},
+  click(){noise(.03,.25,4000,'highpass');},
+  reload(){noise(.05,.3,3000,'highpass');noise(.05,.3,3000,'highpass',.6);noise(.09,.35,2200,'highpass',1.25);tone(300,.05,'square',.08,0,.6);},
+  hit(){tone(1600,.05,'square',.1);},
+  head(){tone(2200,.07,'square',.14);tone(3000,.06,'square',.11,0,.05);},
+  kill(){tone(400,.12,'sawtooth',.16,400);tone(800,.15,'sawtooth',.14,400,.08);},
+  hurt(){tone(130,.25,'sawtooth',.28,-70);noise(.2,.3,600,'lowpass');},
+  step(s){noise(.07,s?.2:.12,s?520:360,'lowpass');},
+  jump(){tone(220,.12,'sine',.09,200);},
+  land(){noise(.1,.22,300,'lowpass');},
+  popup(){tone(880,.08,'square',.1);tone(1320,.1,'square',.1,0,.1);},
+  correct(){[523,659,784,1047].forEach((f,i)=>tone(f,.2,'triangle',.22,0,i*.09));},
+  wrong(){tone(220,.3,'sawtooth',.24,-90);tone(165,.42,'sawtooth',.24,-70,.22);},
+  win(){[523,659,784,1047,784,1047,1319,1568].forEach((f,i)=>{tone(f,.3,'triangle',.22,0,i*.14);tone(f/2,.3,'sine',.14,0,i*.14);});},
+  lose(){[400,340,280,200].forEach((f,i)=>tone(f,.45,'sawtooth',.2,-40,i*.28));}
+};
+
+/* =====================================================================
+   التحقق من تحميل Three.js
+   ===================================================================== */
+if(typeof THREE==='undefined'){
+  $('loginErr').textContent='تعذّر تحميل مكتبة Three.js. تأكد من اتصال الإنترنت ثم أعد تحميل الصفحة.';
+  $('startBtn').disabled=true; return;
+}
+(function(){
+  let ok=false;
+  try{const c=document.createElement('canvas');ok=!!(window.WebGLRenderingContext&&(c.getContext('webgl')||c.getContext('experimental-webgl')));}catch(e){}
+  if(!ok){$('loginErr').textContent='متصفحك لا يدعم الرسوم ثلاثية الأبعاد (WebGL). جرّب Chrome أو Safari أو Edge حديث، وفعّل تسريع الرسوميات.';$('startBtn').disabled=true;}
+})();
+if($('startBtn').disabled)return;
+
+/* =====================================================================
+   المشهد
+   ===================================================================== */
+const canvas=$('game');
+const renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:!IS_TOUCH,powerPreference:'high-performance'});
+renderer.setPixelRatio(IS_TOUCH?1:Math.min(window.devicePixelRatio||1,1.5));
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.autoClear=false;
+const scene=new THREE.Scene();
+const FOGC=0xc9dce9;
+scene.fog=new THREE.Fog(FOGC,55,270);
+const camera=new THREE.PerspectiveCamera(75,1,.05,700);
+camera.rotation.order='YXZ'; scene.add(camera);
+
+// مشهد السلاح (يُرسم فوق كل شيء لمنع الاختراق في الجدران)
+const wScene=new THREE.Scene();
+const wCam=new THREE.PerspectiveCamera(58,1,.01,10);
+wScene.add(new THREE.HemisphereLight(0xdfeeff,0x554433,1.0));
+const wDir=new THREE.DirectionalLight(0xfff0d0,.9); wDir.position.set(.5,1,1); wScene.add(wDir);
+
+function resize(){
+  const w=window.innerWidth,h=window.innerHeight;
+  renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); wCam.aspect=w/h; wCam.updateProjectionMatrix();
+}
+window.addEventListener('resize',resize); resize();
+
+// السماء
+const sky=new THREE.Mesh(new THREE.SphereGeometry(450,24,16),new THREE.ShaderMaterial({
+  side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{top:{value:new THREE.Color(0x2c6fb7)},bot:{value:new THREE.Color(FOGC)}},
+  vertexShader:'varying float h;void main(){h=normalize(position).y;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform vec3 top;uniform vec3 bot;varying float h;void main(){gl_FragColor=vec4(mix(bot,top,pow(max(h,0.),.55)),1.);}'
+}));
+sky.renderOrder=-10; scene.add(sky);
+
+// إضاءة
+scene.add(new THREE.HemisphereLight(0xbfd8ff,0x4d4a3a,.75));
+const sun=new THREE.DirectionalLight(0xfff0d2,1.0);
+sun.position.set(45,80,30); sun.castShadow=true;
+sun.shadow.mapSize.set(IS_TOUCH?1024:2048,IS_TOUCH?1024:2048);
+const sc=sun.shadow.camera; sc.left=-75;sc.right=75;sc.top=75;sc.bottom=-75;sc.near=10;sc.far=220; sun.shadow.bias=-.0006;
+scene.add(sun);
+const flashLight=new THREE.PointLight(0xffc266,0,12); scene.add(flashLight);
+
+// نسيج بالرسم
+function radialTex(c1,c2){
+  const c=document.createElement('canvas'); c.width=c.height=128; const x=c.getContext('2d');
+  const g=x.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,c1); g.addColorStop(1,c2); x.fillStyle=g; x.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(c);
+}
+const sunSprite=new THREE.Sprite(new THREE.SpriteMaterial({map:radialTex('rgba(255,250,220,1)','rgba(255,240,200,0)'),blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+sunSprite.scale.set(120,120,1); sunSprite.position.copy(sun.position).normalize().multiplyScalar(380); scene.add(sunSprite);
+
+function canvasTex(size,fn,rx,ry){
+  const c=document.createElement('canvas'); c.width=c.height=size; const x=c.getContext('2d'); fn(x,size);
+  const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(rx||1,ry||1); t.anisotropy=4; return t;
+}
+function speckle(x,s,n,a){
+  for(let i=0;i<n;i++){x.fillStyle=Math.random()<.5?'rgba(0,0,0,'+(Math.random()*a)+')':'rgba(255,255,255,'+(Math.random()*a)+')';x.fillRect(Math.random()*s,Math.random()*s,1+Math.random()*3,1+Math.random()*3);}
+}
+const TEX={};
+TEX.ground=canvasTex(256,(x,s)=>{x.fillStyle='#7d7762';x.fillRect(0,0,s,s);
+  for(let i=0;i<40;i++){x.fillStyle='rgba('+(Math.random()<.5?'70,90,50':'110,95,70')+','+(Math.random()*.25)+')';x.beginPath();x.arc(Math.random()*s,Math.random()*s,8+Math.random()*26,0,7);x.fill();}
+  speckle(x,s,2200,.2);},90,90);
+TEX.wall=canvasTex(256,(x,s)=>{x.fillStyle='#8a6a58';x.fillRect(0,0,s,s);
+  for(let r=0;r<8;r++){const y=r*32;for(let c=-1;c<4;c++){const ox=(r%2)*32;x.fillStyle='hsl(15,'+(25+Math.random()*10)+'%,'+(36+Math.random()*10)+'%)';x.fillRect(c*64+ox+2,y+2,60,28);}}
+  speckle(x,s,900,.15);},12,1);
+TEX.concrete=canvasTex(256,(x,s)=>{x.fillStyle='#8d9096';x.fillRect(0,0,s,s);speckle(x,s,1800,.15);
+  for(let a=0;a<2;a++)for(let b=0;b<2;b++){const wx=24+a*128,wy=40+b*112;x.fillStyle='#5a646e';x.fillRect(wx-4,wy-4,88,70);x.fillStyle='#223344';x.fillRect(wx,wy,80,62);x.fillStyle='rgba(160,200,230,.25)';x.fillRect(wx,wy,80,20);x.fillStyle='#5a646e';x.fillRect(wx+38,wy,4,62);}
+  x.fillStyle='rgba(0,0,0,.25)';x.fillRect(0,s-6,s,6);},1,1);
+TEX.crate=canvasTex(128,(x,s)=>{x.fillStyle='#a8793f';x.fillRect(0,0,s,s);
+  for(let i=0;i<8;i++){x.fillStyle='rgba(0,0,0,'+(Math.random()*.15)+')';x.fillRect(0,i*16,s,15);}
+  x.strokeStyle='#5c3d17';x.lineWidth=8;x.strokeRect(4,4,s-8,s-8);x.lineWidth=5;x.beginPath();x.moveTo(8,8);x.lineTo(s-8,s-8);x.moveTo(s-8,8);x.lineTo(8,s-8);x.stroke();speckle(x,s,300,.2);},1,1);
+TEX.sand=canvasTex(128,(x,s)=>{x.fillStyle='#b9a272';x.fillRect(0,0,s,s);
+  for(let i=0;i<5;i++){x.strokeStyle='rgba(60,45,20,.5)';x.lineWidth=2;x.strokeRect(2,i*26+1,s-4,24);}speckle(x,s,800,.2);},4,1);
+TEX.wood=canvasTex(64,(x,s)=>{x.fillStyle='#7a5a35';x.fillRect(0,0,s,s);speckle(x,s,200,.2);},1,1);
+function containerTex(col){return canvasTex(128,(x,s)=>{x.fillStyle=col;x.fillRect(0,0,s,s);
+  for(let i=0;i<16;i++){x.fillStyle=i%2?'rgba(0,0,0,.22)':'rgba(255,255,255,.08)';x.fillRect(i*8,0,4,s);}
+  x.fillStyle='rgba(0,0,0,.35)';x.fillRect(0,0,s,6);x.fillRect(0,s-6,s,6);speckle(x,s,400,.25);},1,1);}
+
+const HALF=45;
+const colliders=[],shootables=[];
+const G={box:new THREE.BoxGeometry(1,1,1),sphere:new THREE.SphereGeometry(1,12,10),cyl:new THREE.CylinderGeometry(1,1,1,12),plane:new THREE.PlaneGeometry(1,1)};
+function lam(opts){return new THREE.MeshLambertMaterial(opts);}
+function cloneTex(t,rx,ry){const c=t.clone();c.needsUpdate=true;c.wrapS=c.wrapT=THREE.RepeatWrapping;c.repeat.set(rx,ry);return c;}
+function addBox(x,z,w,d,h,mat,o){
+  o=o||{}; const y0=o.y0||0;
+  const m=new THREE.Mesh(G.box,mat); m.scale.set(w,h,d); m.position.set(x,y0+h/2,z); m.castShadow=true; m.receiveShadow=true;
+  scene.add(m); shootables.push(m);
+  if(!o.noCollide)colliders.push({minX:x-w/2,maxX:x+w/2,minZ:z-d/2,maxZ:z+d/2,top:y0+h});
+  return m;
+}
+// الأرض
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(600,600),lam({map:TEX.ground}));
+ground.rotation.x=-Math.PI/2; ground.receiveShadow=true; scene.add(ground); shootables.push(ground);
+// الأسوار
+(function(){
+  const wm=lam({map:cloneTex(TEX.wall,24,1)}),L=2*HALF+3;
+  addBox(0,-(HALF+.75),L,1.5,6,wm,{noCollide:true});
+  addBox(0,(HALF+.75),L,1.5,6,wm,{noCollide:true});
+  const wm2=lam({map:cloneTex(TEX.wall,24,1)});
+  addBox(-(HALF+.75),0,1.5,L,6,wm2,{noCollide:true});
+  addBox((HALF+.75),0,1.5,L,6,wm2,{noCollide:true});
+})();
+// المباني [x,z,w,d,h]
+[[-22,-20,16,10,7],[24,-22,12,12,6],[-27,20,10,14,6.5],[23,22,14,9,5.5],[0,-6,8,8,3.5]].forEach(b=>{
+  const mat=lam({map:cloneTex(TEX.concrete,Math.max(b[2],b[3])/6,b[4]/6)});
+  addBox(b[0],b[1],b[2],b[3],b[4],mat);
+  addBox(b[0],b[1],b[2]+.5,b[3]+.5,.35,lam({color:0x5d6066}),{y0:b[4],noCollide:true});
+});
+// حاويات [x,z,w,d,h,لون]
+[[-10,-36,7,2.6,2.6,'#b5452e'],[12,-37,7,2.6,2.6,'#2f6fa3'],[36,4,2.6,7,2.6,'#3a7d44'],[-36,-5,2.6,7,2.6,'#c79a2b'],[-8,30,7,2.6,2.6,'#8b3a3a'],[34,-8,2.6,7,2.6,'#5b6b7a']].forEach(c=>{
+  addBox(c[0],c[1],c[2],c[3],c[4],lam({map:containerTex(c[5])}));
+});
+// جدران الاختباء
+const coverMat=lam({map:cloneTex(TEX.wall,4,1)});
+[[-8,12,10,1,2.6],[10,-12,1,10,2.6],[-10,-8,6,1,2.2],[12,10,1,8,2.4],[-4,-28,8,1,2.4],[30,-30,1,8,2.4],[-34,34,8,1,2.4]].forEach(w=>addBox(w[0],w[1],w[2],w[3],w[4],coverMat));
+// أكياس الرمل
+[[4,22,5,1,1],[-4,-24,5,1,1],[28,0,1,5,1],[-30,2,1,5,1],[16,-2,4,1,1],[-18,-4,1,4,1],[0,18,4,1,1]].forEach(s=>addBox(s[0],s[1],s[2],s[3],s[4],lam({map:cloneTex(TEX.sand,Math.max(s[2],s[3])/1.2,1)})));
+// صناديق (قابلة للتسلق)
+const crateMat=lam({map:TEX.crate});
+function crateCluster(x,z){
+  addBox(x,z,1.2,1.2,1.2,crateMat); addBox(x+1.3,z,1.2,1.2,1.2,crateMat); addBox(x+.65,z,1.2,1.2,1.2,crateMat,{y0:1.2});
+  addBox(x,z+1.3,1.2,1.2,1.2,crateMat);
+}
+[[-16,26],[14,28],[-4,-16],[16,-14],[-34,-24],[34,-36],[4,8],[-20,0],[30,12],[-38,12]].forEach(c=>crateCluster(c[0],c[1]));
+// براميل
+const barrelMat=lam({color:0x3d6f8a});
+[[-12,18],[18,6],[-24,-8],[8,-24],[-2,34],[26,-14],[-32,-16],[38,20],[-14,-30]].forEach(b=>{
+  const m=new THREE.Mesh(G.cyl,barrelMat); m.scale.set(.45,1.1,.45); m.position.set(b[0],.55,b[1]); m.castShadow=true; scene.add(m); shootables.push(m);
+  colliders.push({minX:b[0]-.4,maxX:b[0]+.4,minZ:b[1]-.4,maxZ:b[1]+.4,top:1.1});
+});
+// أشجار وجبال خارج الساحة
+(function(){
+  const tm=lam({color:0x2f5a2c}),bm=lam({color:0x5a3d22});
+  for(let i=0;i<46;i++){
+    const a=Math.random()*Math.PI*2,r=HALF+8+Math.random()*60,x=Math.cos(a)*r,z=Math.sin(a)*r,s=.8+Math.random()*1.1;
+    const t=new THREE.Mesh(G.cyl,bm);t.scale.set(.3*s,1.5*s,.3*s);t.position.set(x,.75*s,z);scene.add(t);
+    const c=new THREE.Mesh(new THREE.ConeGeometry(1.6*s,4.2*s,8),tm);c.position.set(x,1.5*s+2.1*s,z);c.castShadow=true;scene.add(c);
+  }
+  const mm=lam({color:0x4d6a58,fog:true});
+  for(let i=0;i<14;i++){
+    const a=i/14*Math.PI*2+Math.random()*.2,r=210+Math.random()*30,h=40+Math.random()*40;
+    const m=new THREE.Mesh(new THREE.ConeGeometry(45+Math.random()*30,h,6),mm);m.position.set(Math.cos(a)*r,h/2-2,Math.sin(a)*r);scene.add(m);
+  }
+})();
+
+/* =====================================================================
+   التصادم
+   ===================================================================== */
+function collide(pos,r,feet){
+  for(let it=0;it<2;it++){
+    for(let i=0;i<colliders.length;i++){
+      const b=colliders[i]; if(feet>=b.top-.3)continue;
+      const cx=Math.max(b.minX,Math.min(pos.x,b.maxX)),cz=Math.max(b.minZ,Math.min(pos.z,b.maxZ));
+      const dx=pos.x-cx,dz=pos.z-cz,d2=dx*dx+dz*dz;
+      if(d2<r*r){
+        if(d2>1e-8){const d=Math.sqrt(d2),p=r-d;pos.x+=dx/d*p;pos.z+=dz/d*p;}
+        else{const l=pos.x-b.minX,rr=b.maxX-pos.x,t=pos.z-b.minZ,bt=b.maxZ-pos.z,m=Math.min(l,rr,t,bt);
+          if(m===l)pos.x=b.minX-r;else if(m===rr)pos.x=b.maxX+r;else if(m===t)pos.z=b.minZ-r;else pos.z=b.maxZ+r;}
+      }
+    }
+  }
+  const lim=HALF-r-.05; pos.x=clamp(pos.x,-lim,lim); pos.z=clamp(pos.z,-lim,lim);
+}
+function groundAt(x,z,feet,margin){
+  let g=0;
+  for(let i=0;i<colliders.length;i++){const b=colliders[i];
+    if(x>b.minX-.2&&x<b.maxX+.2&&z>b.minZ-.2&&z<b.maxZ+.2&&b.top<=feet+margin&&b.top>g)g=b.top;}
+  return g;
+}
+function slab(o,d,mn,mx,r){
+  if(Math.abs(d)<1e-9)return o>=mn&&o<=mx;
+  let t1=(mn-o)/d,t2=(mx-o)/d; if(t1>t2){const s=t1;t1=t2;t2=s;}
+  if(t1>r.t0)r.t0=t1; if(t2<r.t1)r.t1=t2; return r.t0<=r.t1;
+}
+function blocked(a,b){
+  const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z;
+  for(let i=0;i<colliders.length;i++){
+    const c=colliders[i],r={t0:0,t1:1};
+    if(slab(a.x,dx,c.minX,c.maxX,r)&&slab(a.y,dy,0,c.top,r)&&slab(a.z,dz,c.minZ,c.maxZ,r))return true;
+  }
+  return false;
+}
+
+/* =====================================================================
+   حالة اللعبة
+   ===================================================================== */
+const MAG=30,RESERVE=90;
+const P={pos:new THREE.Vector3(0,0,38),vx:0,vz:0,vy:0,yaw:0,pitch:0,onGround:true,hp:100,r:.45};
+const S={name:'',grade:5,state:'menu',score:0,kills:0,correct:0,asked:0,spawned:0,ammo:MAG,reserve:RESERVE,reloading:false,reloadT:0,nextShot:0,heat:0,recoil:0,
+  T:0,bobT:0,stepD:0,flash:0,hurtFlash:0,sprintK:0,mouse:false,lastHurtSnd:0,landTimer:0};
+let Q=[],enemies=[],enemyMeshes=[],effects=[],menuT=0;
+const keys={};
+const DIFF={5:{acc:.55,dmg:.8},6:{acc:.6,dmg:.8},7:{acc:.75,dmg:.9},8:{acc:.8,dmg:.9},9:{acc:1,dmg:1},10:{acc:1,dmg:1},11:{acc:1.15,dmg:1.1},12:{acc:1.2,dmg:1.1}};
+
+/* =====================================================================
+   السلاح (منظور اللاعب)
+   ===================================================================== */
+const gun=new THREE.Group(); wScene.add(gun);
+function gpart(mat,w,h,d,x,y,z,rx){const m=new THREE.Mesh(G.box,mat);m.scale.set(w,h,d);m.position.set(x,y,z);if(rx)m.rotation.x=rx;gun.add(m);return m;}
+(function(){
+  const metal=lam({color:0x2b2e30}),dark=lam({color:0x17181a}),wood=lam({color:0x6b4a2a}),skin=lam({color:0xd2a47f}),sleeve=lam({color:0x4a5a30});
+  gpart(metal,.06,.09,.5,0,0,0); gpart(dark,.026,.026,.38,0,.02,-.42); gpart(wood,.07,.07,.26,0,-.01,-.22);
+  gpart(wood,.05,.1,.26,0,-.035,.36); gpart(dark,.04,.17,.07,0,-.12,.04,.25); gpart(wood,.045,.1,.05,0,-.09,.2,-.2);
+  gpart(dark,.02,.035,.03,0,.065,-.08); gpart(dark,.015,.04,.015,0,.06,-.58);
+  gpart(skin,.065,.07,.1,0,-.14,.2); gpart(sleeve,.085,.085,.45,.04,-.2,.5,-.1);
+  gpart(skin,.075,.07,.12,0,-.045,-.26); gpart(sleeve,.085,.085,.5,-.07,-.12,-.06,.12);
+})();
+const flashTex=(function(){
+  const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
+  const g=x.createRadialGradient(64,64,2,64,64,62);g.addColorStop(0,'rgba(255,255,220,1)');g.addColorStop(.3,'rgba(255,190,70,.9)');g.addColorStop(1,'rgba(255,100,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128);
+  x.strokeStyle='rgba(255,230,150,.9)';x.lineWidth=5;for(let i=0;i<6;i++){const a=i*Math.PI/3;x.beginPath();x.moveTo(64,64);x.lineTo(64+Math.cos(a)*62,64+Math.sin(a)*62);x.stroke();}
+  return new THREE.CanvasTexture(c);
+})();
+const flash=new THREE.Mesh(G.plane,new THREE.MeshBasicMaterial({map:flashTex,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+flash.position.set(0,.02,-.66); flash.visible=false; gun.add(flash);
+const gunBase=new THREE.Vector3(.24,-.25,-.46);
+gun.visible=false;
+
+/* =====================================================================
+   المؤثرات
+   ===================================================================== */
+const tracerGeo=G.box;
+function tracer(a,b,color){
+  const len=a.distanceTo(b); if(len<.01)return;
+  const m=new THREE.Mesh(tracerGeo,new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.9,fog:false}));
+  m.scale.set(.022,.022,len); m.position.copy(a).lerp(b,.5); m.lookAt(b); scene.add(m); effects.push({obj:m,t:0,life:.07,type:'fade'});
+}
+function spark(pos,color,size,life){
+  const m=new THREE.Mesh(G.sphere,new THREE.MeshBasicMaterial({color:color,transparent:true,fog:false}));
+  m.position.copy(pos); m.scale.setScalar(size||.1); scene.add(m); effects.push({obj:m,t:0,life:life||.18,type:'spark',size:size||.1});
+}
+function updateEffects(dt){
+  for(let i=effects.length-1;i>=0;i--){
+    const e=effects[i]; e.t+=dt; const k=e.t/e.life;
+    if(k>=1){scene.remove(e.obj);e.obj.material.dispose();effects.splice(i,1);continue;}
+    if(e.type==='fade')e.obj.material.opacity=.9*(1-k); else{e.obj.scale.setScalar(e.size*(1+k*1.5));e.obj.material.opacity=1-k;}
+  }
+}
+function clearEffects(){effects.forEach(e=>{scene.remove(e.obj);e.obj.material.dispose();});effects=[];}
+
+/* =====================================================================
+   الأعداء
+   ===================================================================== */
+function epart(e,geo,mat,sx,sy,sz,x,y,z,parent,head){
+  const m=new THREE.Mesh(geo,mat); m.scale.set(sx,sy,sz); m.position.set(x,y,z); m.castShadow=true;
+  m.userData.enemy=e; if(head)m.userData.head=true; parent.add(m); e.meshes.push(m); return m;
+}
+function makeEnemy(x,z){
+  const g=new THREE.Group(); g.rotation.order='YXZ'; g.position.set(x,0,z);
+  const e={group:g,pos:g.position,meshes:[],hp:100,dead:false,yaw:0,anim:0,
+    speed:rand(2.9,3.7),pref:rand(10,22),huntAt:0,alert:false,strafeDir:Math.random()<.5?-1:1,strafeT:rand(1,3),wdir:rand(0,6.28),wanderT:0,
+    stuckT:0,avoidT:0,avoid:1,aimT:0,shootCd:rand(.3,1),burst:0,losT:0,los:false,reaction:rand(.45,.95),flashT:0,hitT:0,deadT:0,removeT:0};
+  const C={body:0x5b4a2e,pants:0x3a3d2a,skin:0xcf9f7a,helm:0x2d3328,gun:0x161616,vest:0x28321f,band:0xc62828};
+  e.mats={}; for(const k in C)e.mats[k]=new THREE.MeshLambertMaterial({color:C[k]});
+  const M=e.mats;
+  e.legL=new THREE.Group();e.legL.position.set(-.13,.8,0);g.add(e.legL);epart(e,G.box,M.pants,.2,.8,.22,0,-.4,0,e.legL);
+  e.legR=new THREE.Group();e.legR.position.set(.13,.8,0);g.add(e.legR);epart(e,G.box,M.pants,.2,.8,.22,0,-.4,0,e.legR);
+  epart(e,G.box,M.body,.5,.62,.28,0,1.12,0,g); epart(e,G.box,M.vest,.52,.4,.3,0,1.17,.01,g);
+  epart(e,G.sphere,M.skin,.13,.15,.13,0,1.58,0,g,true); epart(e,G.sphere,M.helm,.155,.115,.155,0,1.65,0,g,true);
+  epart(e,G.box,M.body,.11,.11,.5,.2,1.27,.2,g); epart(e,G.box,M.body,.11,.11,.5,-.14,1.24,.3,g);
+  epart(e,G.box,M.band,.12,.09,.12,.3,1.36,0,g);
+  epart(e,G.box,M.gun,.07,.1,.72,.1,1.25,.55,g);
+  e.flashM=new THREE.Mesh(G.sphere,new THREE.MeshBasicMaterial({color:0xffd27a}));e.flashM.scale.setScalar(.12);e.flashM.position.set(.1,1.25,.98);e.flashM.visible=false;g.add(e.flashM);
+  // شريط الصحة
+  e.bar=new THREE.Group(); e.bar.position.y=2.05; g.add(e.bar);
+  const bg=new THREE.Mesh(G.plane,new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.65,fog:false})); bg.scale.set(.82,.1,1); e.bar.add(bg);
+  e.fill=new THREE.Mesh(G.plane,new THREE.MeshBasicMaterial({color:0x4caf50,fog:false})); e.fill.scale.set(.78,.06,1); e.fill.position.z=.004; e.bar.add(e.fill);
+  scene.add(g); enemies.push(e); e.meshes.forEach(m=>enemyMeshes.push(m));
+  return e;
+}
+const SPAWNS=[[-38,-38],[38,-38],[-38,38],[40,32],[0,-41],[-41,0],[41,-2],[-30,-8],[30,-20],[-10,-18],[10,-30],[-40,22],[20,-42],[-20,-42]];
+function spawnEnemy(initial){
+  const pp=P.pos; const fwd={x:-Math.sin(P.yaw),z:-Math.cos(P.yaw)};
+  const cand=shuffle(SPAWNS.slice()); let pick=null,best=-1;
+  const eye=new THREE.Vector3(),tgt=new THREE.Vector3(pp.x,pp.y+1.6,pp.z);
+  for(const s of cand){
+    const dx=s[0]-pp.x,dz=s[1]-pp.z,d=Math.hypot(dx,dz);
+    if(d>best){best=d;pick=s;}
+    if(d<32)continue;
+    const dot=(dx*fwd.x+dz*fwd.z)/d;
+    eye.set(s[0],1.6,s[1]);
+    if(dot>.35&&!blocked(eye,tgt))continue;
+    pick=s;best=999;break;
+  }
+  const e=makeEnemy(pick[0]+rand(-2,2),pick[1]+rand(-2,2));
+  collide(e.pos,.5,0);
+  e.huntAt=S.T+(initial?rand(1.5,5):rand(.5,2)); S.spawned++;
+  return e;
+}
+function removeEnemy(e){
+  scene.remove(e.group); enemyMeshes=enemyMeshes.filter(m=>m.userData.enemy!==e);
+  for(const k in e.mats)e.mats[k].dispose(); enemies=enemies.filter(x=>x!==e);
+}
+function clearEnemies(){enemies.slice().forEach(removeEnemy);enemies=[];enemyMeshes=[];}
+function aliveEnemies(){return enemies.filter(e=>!e.dead);}
+function lerpAngle(a,b,t){let d=b-a;while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;return a+d*clamp(t,0,1);}
+
+function enemyFire(e,dist){
+  const df=DIFF[S.grade]||DIFF[9];
+  const sy=Math.sin(e.yaw),cy=Math.cos(e.yaw);
+  const mz=new THREE.Vector3(e.pos.x+sy*.98+cy*.1,1.25,e.pos.z+cy*.98-sy*.1);
+  e.flashT=.05; e.flashM.visible=true; sfx.enemyShoot(dist);
+  const speed=Math.hypot(P.vx,P.vz);
+  let chance=(.72-dist*.013)*df.acc*(speed>3?.8:1)*(P.onGround?1:.8); chance=clamp(chance,.07,.62)*(IS_TOUCH?.85:1);
+  const tgt=new THREE.Vector3(P.pos.x,P.pos.y+1.3,P.pos.z);
+  if(Math.random()<chance){
+    tracer(mz,tgt.clone().add(new THREE.Vector3(rand(-.1,.1),rand(-.1,.1),rand(-.1,.1))),0xff8a50);
+    damagePlayer(Math.round(rand(5,8)*df.dmg),e.pos);
+  }else{
+    const miss=tgt.clone().add(new THREE.Vector3(rand(-1.5,1.5),rand(-.8,.8),rand(-1.5,1.5)));
+    tracer(mz,miss,0xffc080);
+  }
+}
+const _v=new THREE.Vector3();
+function updateEnemy(e,dt){
+  const dx=P.pos.x-e.pos.x,dz=P.pos.z-e.pos.z,dist=Math.hypot(dx,dz)||.001;
+  e.losT-=dt;
+  if(e.losT<=0){_v.set(e.pos.x,1.55,e.pos.z);e.los=!blocked(_v,camera.position);e.losT=.2+Math.random()*.1;}
+  if(!e.alert&&(S.T>=e.huntAt||(e.los&&dist<45)||dist<22))e.alert=true;
+  let mx=0,mz=0,spd=0;
+  if(!e.alert){
+    e.wanderT-=dt; if(e.wanderT<=0){e.wdir=rand(0,6.28);e.wanderT=rand(1.5,3.5);}
+    mx=Math.sin(e.wdir);mz=Math.cos(e.wdir);spd=1.6;
+  }else{
+    const nx=dx/dist,nz=dz/dist;
+    if(!e.los||dist>e.pref+4){mx=nx;mz=nz;spd=e.speed;}
+    else if(dist<e.pref-5){mx=-nx;mz=-nz;spd=2;}
+    else{e.strafeT-=dt;if(e.strafeT<=0){e.strafeDir*=-1;e.strafeT=rand(1,3);}mx=-nz*e.strafeDir;mz=nx*e.strafeDir;spd=2.1;}
+  }
+  if(e.avoidT>0){
+    e.avoidT-=dt; const a=e.avoid*1.2,c=Math.cos(a),s=Math.sin(a),rx=mx*c-mz*s,rz=mx*s+mz*c;mx=rx;mz=rz;
+  }
+  const ox=e.pos.x,oz=e.pos.z;
+  e.pos.x+=mx*spd*dt; e.pos.z+=mz*spd*dt;
+  // تباعد عن باقي الأعداء
+  for(const o of enemies){ if(o===e||o.dead)continue; const ex=e.pos.x-o.pos.x,ez=e.pos.z-o.pos.z,d=Math.hypot(ex,ez); if(d<1&&d>.001){e.pos.x+=ex/d*(1-d)*.5;e.pos.z+=ez/d*(1-d)*.5;} }
+  collide(e.pos,.5,0);
+  const moved=Math.hypot(e.pos.x-ox,e.pos.z-oz);
+  if(spd>0){ if(moved<spd*dt*.35)e.stuckT+=dt; else e.stuckT=Math.max(0,e.stuckT-dt); }
+  if(e.stuckT>.35){e.avoidT=1.1;e.avoid=Math.random()<.5?-1:1;e.stuckT=0;}
+  // الاتجاه
+  const ty=(e.alert&&e.los)?Math.atan2(dx,dz):(spd>0?Math.atan2(mx,mz):e.yaw);
+  e.yaw=lerpAngle(e.yaw,ty,dt*8); e.group.rotation.y=e.yaw;
+  // حركة الأرجل
+  e.anim+=moved*5; const sw=Math.sin(e.anim)*(moved>0.001?.7:0);
+  e.legL.rotation.x=sw; e.legR.rotation.x=-sw;
+  // إطلاق النار
+  if(e.alert&&e.los&&dist<58){
+    e.aimT+=dt;
+    if(e.aimT>e.reaction){
+      e.shootCd-=dt;
+      if(e.shootCd<=0){
+        enemyFire(e,dist); e.burst++;
+        if(e.burst>=3){e.burst=0;e.shootCd=rand(1,1.8);}else e.shootCd=.17;
+      }
+    }
+  }else if(!e.los)e.aimT=Math.max(0,e.aimT-dt);
+  if(e.flashT>0){e.flashT-=dt;if(e.flashT<=0)e.flashM.visible=false;}
+  if(e.hitT>0){e.hitT-=dt;if(e.hitT<=0)for(const k in e.mats)e.mats[k].emissive.setHex(0);}
+  // شريط الصحة
+  e.bar.lookAt(camera.position);
+  e.bar.scale.setScalar(clamp(dist/18,1,2.6));
+}
+function updateCorpse(e,dt){
+  e.deadT+=dt; const k=clamp(e.deadT/.45,0,1);
+  e.group.rotation.x=-k*Math.PI/2; e.group.position.y=.14*k;
+  if(e.flashM.visible)e.flashM.visible=false;
+}
+
+/* =====================================================================
+   الأضرار والقتل
+   ===================================================================== */
+function toast(txt,color,ms){
+  const t=$('toast'); t.textContent=txt; t.style.color=color||'#fff'; t.style.opacity=1;
+  clearTimeout(toast._t); toast._t=setTimeout(()=>{t.style.opacity=0;},ms||1800);
+}
+function damagePlayer(amount,src){
+  if(S.state!=='playing')return;
+  P.hp=Math.max(0,P.hp-amount); S.hurtFlash=Math.min(1,S.hurtFlash+.5);
+  if(S.T-S.lastHurtSnd>.25){sfx.hurt();S.lastHurtSnd=S.T;}
+  if(src){
+    const dx=src.x-P.pos.x,dz=src.z-P.pos.z,fx=-Math.sin(P.yaw),fz=-Math.cos(P.yaw),rx=Math.cos(P.yaw),rz=-Math.sin(P.yaw);
+    const ang=Math.atan2(dx*rx+dz*rz,dx*fx+dz*fz)*180/Math.PI;
+    const di=$('dirind'),inner=di.firstElementChild; di.style.transform='rotate('+ang+'deg)'; inner.style.transition='none'; inner.style.opacity=1;
+    void inner.offsetWidth; inner.style.transition='opacity .6s'; inner.style.opacity=0;
+  }
+  if(P.hp<=0)endGame(false);
+}
+function hitMarker(red){
+  const h=$('hitm'); h.className=red?'red':''; h.style.opacity=1; clearTimeout(hitMarker._t); hitMarker._t=setTimeout(()=>{h.style.opacity=0;},red?260:110);
+}
+function hurtEnemy(e,dmg,head,point){
+  if(e.dead)return;
+  e.hp-=dmg; e.alert=true; e.hitT=.09; for(const k in e.mats)e.mats[k].emissive.setHex(0x661111);
+  spark(point,0xcc1111,.1,.2);
+  const r=clamp(e.hp/100,0,1); e.fill.scale.x=Math.max(.001,.78*r); e.fill.position.x=-(.78*(1-r))/2;
+  e.fill.material.color.setHex(r>.55?0x4caf50:r>.25?0xffb300:0xe53935);
+  if(e.hp<=0){killEnemy(e,head);}
+  else{sfx[head?'head':'hit']();hitMarker(false);}
+}
+function killEnemy(e,head){
+  e.dead=true; e.bar.visible=false; e.flashM.visible=false; e.legL.rotation.x=e.legR.rotation.x=0;
+  enemyMeshes=enemyMeshes.filter(m=>m.userData.enemy!==e);
+  S.kills++; S.score+=50+(head?25:0); sfx.kill(); hitMarker(true);
+  S.mouse=false; S.state='question'; hud(true);
+  if(document.pointerLockElement)document.exitPointerLock();
+  setTimeout(showQuestion,650);
+}
+
+/* =====================================================================
+   إطلاق النار من اللاعب
+   ===================================================================== */
+const ray=new THREE.Raycaster(); ray.far=250;
+function currentSpread(){
+  const sp=Math.hypot(P.vx,P.vz);
+  return clamp(.004+Math.min(sp/6,1.7)*.011+(P.onGround?0:.03)+S.heat,.004,.065);
+}
+function tryFire(){
+  if(S.state!=='playing'||S.T<S.nextShot)return;
+  if(S.reloading)return;
+  if(S.ammo<=0){S.nextShot=S.T+.25;sfx.click();if(S.reserve>0)startReload();else toast('نفدت الذخيرة!','#ffb300',900);return;}
+  S.ammo--; S.nextShot=S.T+.11; S.recoil=Math.min(1.6,S.recoil+.7); S.heat=Math.min(.03,S.heat+.0055);
+  P.pitch=Math.min(1.5,P.pitch+.0042); P.yaw+=rand(-.0018,.0018);
+  sfx.shoot(); S.flash=.05;
+  camera.updateMatrixWorld(true);
+  const origin=new THREE.Vector3(); camera.getWorldPosition(origin);
+  const sp=currentSpread(),dir=new THREE.Vector3((Math.random()-.5)*2*sp,(Math.random()-.5)*2*sp,-1).normalize().applyQuaternion(camera.quaternion);
+  if(IS_TOUCH){ // مساعدة تصويب خفيفة للهاتف
+    let best=null,bd=.05; const tp=new THREE.Vector3(),ep=new THREE.Vector3();
+    for(const e of enemies){
+      if(e.dead)continue;
+      tp.set(e.pos.x,1.2,e.pos.z).sub(origin); const dd=tp.length(); if(dd<.5)continue; tp.divideScalar(dd);
+      const ang=Math.acos(clamp(tp.dot(dir),-1,1));
+      if(ang<bd){ep.set(e.pos.x,1.4,e.pos.z);if(!blocked(origin,ep)){bd=ang;best=tp.clone();}}
+    }
+    if(best)dir.lerp(best,.7).normalize();
+  }
+  ray.set(origin,dir);
+  const hits=ray.intersectObjects(shootables.concat(enemyMeshes),false);
+  const muzzle=camera.localToWorld(new THREE.Vector3(.2,-.16,-.95));
+  let end=origin.clone().add(dir.clone().multiplyScalar(120));
+  if(hits.length){
+    const h=hits[0]; end=h.point; const ud=h.object.userData;
+    if(ud.enemy){hurtEnemy(ud.enemy,ud.head?50:20,!!ud.head,h.point);}
+    else spark(h.point,0xdddddd,.08,.22);
+  }
+  tracer(muzzle,end,0xffe08a);
+  if(S.ammo===0&&S.reserve>0)setTimeout(()=>{if(S.state==='playing'&&S.ammo===0)startReload();},180);
+  hud();
+}
+function startReload(){
+  if(S.reloading||S.ammo>=MAG||S.reserve<=0||S.state!=='playing')return;
+  S.reloading=true;S.reloadT=0;sfx.reload();hud();
+}
+
+/* =====================================================================
+   واجهة اللعب (HUD)
+   ===================================================================== */
+const hudC={};
+function setTxt(id,v){if(hudC[id]!==v){hudC[id]=v;$(id).textContent=v;}}
+function hud(force){
+  setTxt('hpTxt',String(Math.round(P.hp)));
+  const w=Math.round(P.hp)+'%'; if(hudC.hpw!==w){hudC.hpw=w;const f=$('hpFill');f.style.width=w;f.style.background=P.hp>55?'#7cd34a':P.hp>28?'#ffb300':'#e53935';}
+  const am=S.ammo+'|'+S.reserve; if(hudC.am!==am){hudC.am=am;$('ammoTxt').innerHTML=S.ammo+' <small>/ '+S.reserve+'</small>';}
+  setTxt('reloadTxt',S.reloading?'جارٍ إعادة التلقيم...':(S.ammo===0?'اضغط R لإعادة التلقيم':''));
+  setTxt('killTxt',S.kills+' / '+TOTAL);
+  setTxt('scoreTxt',String(S.score));
+  if(hudC.pips!==S.kills){hudC.pips=S.kills;const ps=$('pips').children;for(let i=0;i<ps.length;i++)ps[i].className=i<S.kills?'on':'';}
+}
+(function(){const p=$('pips');for(let i=0;i<TOTAL;i++)p.appendChild(document.createElement('i'));})();
+
+const mm=$('mini'),mx=mm.getContext('2d');
+function drawMini(){
+  const SZ=300,R=150,sc=3.4;
+  mx.clearRect(0,0,SZ,SZ); mx.save(); mx.beginPath(); mx.arc(R,R,R-3,0,7); mx.clip();
+  mx.fillStyle='rgba(10,24,8,.8)'; mx.fillRect(0,0,SZ,SZ);
+  const cy=Math.cos(P.yaw),sy=Math.sin(P.yaw);
+  const pr=(x,z)=>{const rx=x-P.pos.x,rz=z-P.pos.z;return [R+(rx*cy-rz*sy)*sc,R+(rx*sy+rz*cy)*sc];};
+  mx.strokeStyle='rgba(160,200,60,.18)'; mx.lineWidth=1;
+  for(let r=50;r<R;r+=50){mx.beginPath();mx.arc(R,R,r,0,7);mx.stroke();}
+  // حدود الساحة
+  const c4=[[-HALF,-HALF],[HALF,-HALF],[HALF,HALF],[-HALF,HALF]].map(p=>pr(p[0],p[1]));
+  mx.strokeStyle='rgba(200,245,66,.5)'; mx.lineWidth=2; mx.beginPath(); c4.forEach((p,i)=>i?mx.lineTo(p[0],p[1]):mx.moveTo(p[0],p[1])); mx.closePath(); mx.stroke();
+  mx.fillStyle='rgba(130,150,110,.6)';
+  for(const c of colliders){
+    const a=pr(c.minX,c.minZ),b=pr(c.maxX,c.minZ),d=pr(c.maxX,c.maxZ),e=pr(c.minX,c.maxZ);
+    mx.beginPath(); mx.moveTo(a[0],a[1]); mx.lineTo(b[0],b[1]); mx.lineTo(d[0],d[1]); mx.lineTo(e[0],e[1]); mx.closePath(); mx.fill();
+  }
+  // مسح الرادار
+  const sa=S.T*2.2; mx.strokeStyle='rgba(200,245,66,.35)'; mx.lineWidth=2; mx.beginPath(); mx.moveTo(R,R); mx.lineTo(R+Math.cos(sa)*R,R+Math.sin(sa)*R); mx.stroke();
+  // الأعداء
+  for(const e of enemies){
+    if(e.dead)continue;
+    let p=pr(e.pos.x,e.pos.z),dx=p[0]-R,dy=p[1]-R,d=Math.hypot(dx,dy),edge=false;
+    if(d>R-14){dx*=(R-14)/d;dy*=(R-14)/d;edge=true;}
+    mx.fillStyle=edge?'rgba(255,70,60,.65)':'#ff3b30'; mx.shadowColor='#ff3b30'; mx.shadowBlur=edge?0:10;
+    mx.beginPath(); mx.arc(R+dx,R+dy,edge?5:7,0,7); mx.fill(); mx.shadowBlur=0;
+  }
+  // اللاعب
+  mx.fillStyle='#c8f542'; mx.beginPath(); mx.moveTo(R,R-13); mx.lineTo(R+9,R+10); mx.lineTo(R,R+5); mx.lineTo(R-9,R+10); mx.closePath(); mx.fill();
+  mx.restore();
+  mx.strokeStyle='rgba(200,245,66,.7)'; mx.lineWidth=3; mx.beginPath(); mx.arc(R,R,R-2,0,7); mx.stroke();
+}
+
+/* =====================================================================
+   تحديث اللعبة
+   ===================================================================== */
+function update(dt){
+  S.T+=dt;
+  const fwd=clamp((keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-TCH.jy,-1,1);
+  const str=clamp((keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+TCH.jx,-1,1);
+  const sprint=(keys.ShiftLeft||keys.ShiftRight||TCH.sprint)&&fwd>0;
+  const sp=sprint?9.4:5.8;
+  let wx=0,wz=0;
+  if(fwd||str){const sy=Math.sin(P.yaw),cy=Math.cos(P.yaw);wx=-sy*fwd+cy*str;wz=-cy*fwd-sy*str;const l=Math.hypot(wx,wz);wx/=l;wz/=l;}
+  const acc=clamp((P.onGround?13:3)*dt,0,1);
+  P.vx+=(wx*sp-P.vx)*acc; P.vz+=(wz*sp-P.vz)*acc;
+  const prevY=P.pos.y;
+  P.pos.x+=P.vx*dt; P.pos.z+=P.vz*dt; collide(P.pos,P.r,P.pos.y);
+  if((keys.Space||TCH.jump)&&P.onGround){P.vy=8.4;P.onGround=false;sfx.jump();TCH.jump=false;}
+  if(P.onGround){
+    const g=groundAt(P.pos.x,P.pos.z,prevY,.3);
+    if(g<P.pos.y-.05){P.onGround=false;P.vy=0;} else P.pos.y=g;
+  }
+  if(!P.onGround){
+    P.vy-=24*dt; P.pos.y+=P.vy*dt;
+    const g=groundAt(P.pos.x,P.pos.z,prevY,.05);
+    if(P.vy<=0&&P.pos.y<=g){P.pos.y=g;P.vy=0;P.onGround=true;sfx.land();}
+  }
+  const speed=Math.hypot(P.vx,P.vz);
+  // خطوات وهز الكاميرا
+  if(P.onGround&&speed>1){
+    S.bobT+=speed*dt*1.7; S.stepD+=speed*dt;
+    const stride=sprint?2.7:2.2; if(S.stepD>stride){S.stepD=0;sfx.step(sprint);}
+  }
+  const bob=P.onGround?Math.sin(S.bobT)*.035*Math.min(1,speed/6):0;
+  S.sprintK+=((sprint&&speed>6?1:0)-S.sprintK)*clamp(dt*8,0,1);
+  const fov=75+7*S.sprintK; if(Math.abs(camera.fov-fov)>.05){camera.fov=fov;camera.updateProjectionMatrix();}
+  camera.position.set(P.pos.x,P.pos.y+1.65+bob,P.pos.z);
+  camera.rotation.set(P.pitch,P.yaw,0);
+  // سلاح
+  if(S.mouse)tryFire();
+  S.heat=Math.max(0,S.heat-dt*.05); S.recoil=Math.max(0,S.recoil-dt*9);
+  if(S.reloading){S.reloadT+=dt;if(S.reloadT>=1.6){const need=MAG-S.ammo,take=Math.min(need,S.reserve);S.ammo+=take;S.reserve-=take;S.reloading=false;hud();}}
+  if(S.flash>0){S.flash-=dt;if(S.flash<=0){flash.visible=false;flashLight.intensity=0;}else{flash.visible=true;flash.rotation.z=Math.random()*6.28;const s=rand(.28,.42);flash.scale.set(s,s,1);
+    flashLight.intensity=2.2;const fp=camera.localToWorld(new THREE.Vector3(.2,-.1,-1.5));flashLight.position.copy(fp);}}
+  // حركة السلاح
+  let rl=0;if(S.reloading)rl=Math.sin(clamp(S.reloadT/1.6,0,1)*Math.PI);
+  gun.position.set(gunBase.x-.1*S.sprintK+Math.cos(S.bobT*.5)*.006*Math.min(1,speed/6)-rl*.04,gunBase.y+bob*.6-rl*.14,gunBase.z+S.recoil*.045);
+  gun.rotation.set(S.recoil*.05+rl*-.9,.45*S.sprintK+rl*.3,rl*.5);
+  // الأعداء
+  for(let i=enemies.length-1;i>=0;i--){
+    const e=enemies[i];
+    if(e.dead){updateCorpse(e,dt);if(e.removeT>0){e.removeT-=dt;if(e.removeT<=0)removeEnemy(e);}}
+    else updateEnemy(e,dt);
+  }
+  updateEffects(dt);
+  // مؤشر التصويب
+  $('crosshair').style.setProperty('--g',(5+currentSpread()*420)+'px');
+  // الشاشة الحمراء
+  S.hurtFlash=Math.max(0,S.hurtFlash-dt*1.6);
+  const low=P.hp<30?(.25+.2*Math.sin(S.T*6))*(1-P.hp/30):0;
+  $('vig').style.opacity=Math.min(1,S.hurtFlash*.9+low);
+  hud();
+}
+
+/* =====================================================================
+   الأسئلة
+   ===================================================================== */
+const LET=['أ','ب','ج','د'];
+let qAnswered=false;
+function showQuestion(){
+  if(S.state!=='question')return;
+  const q=Q[S.asked]; if(!q){finishAfterQuestion();return;}
+  qAnswered=false; sfx.popup();
+  $('qNum').textContent='السؤال '+(S.asked+1)+' من '+TOTAL;
+  $('qText').innerHTML=fmt(q.q);
+  const box=$('qOpts'); box.innerHTML='';
+  q.opts.forEach((o,i)=>{
+    const b=document.createElement('button'); b.className='opt'; b.innerHTML='<span class="lt">'+LET[i]+'</span><span>'+fmt(o)+'</span>';
+    b.onclick=()=>answer(i); box.appendChild(b);
+  });
+  $('qFeed').className=''; $('qFeed').innerHTML=''; $('qNext').style.display='none';
+  $('quiz').classList.add('show');
+}
+function answer(i){
+  if(qAnswered||S.state!=='question')return; qAnswered=true;
+  const q=Q[S.asked],ok=i===q.ans,btns=$('qOpts').children;
+  for(let k=0;k<btns.length;k++){btns[k].disabled=true;if(k===q.ans)btns[k].classList.add('correct');}
+  const feed=$('qFeed');
+  if(ok){
+    sfx.correct(); S.correct++; S.score+=100; P.hp=Math.min(100,P.hp+20); S.ammo=MAG; S.reserve=RESERVE; S.reloading=false;
+    feed.className='ok'; feed.innerHTML='✔ <b>إجابة صحيحة!</b> +100 نقطة · +20% صحة · ذخيرة ممتلئة.<br>'+fmt(q.exp);
+  }else{
+    btns[i].classList.add('wrong'); sfx.wrong(); P.hp=Math.max(1,P.hp-10);
+    feed.className='no'; feed.innerHTML='✘ <b>إجابة خاطئة</b> · خُصم 10% من الصحة.<br>الإجابة الصحيحة: <b>'+fmt(q.correct)+'</b><br>'+fmt(q.exp);
+  }
+  S.asked++; hud();
+  const nx=$('qNext'); nx.textContent=S.asked>=TOTAL?'إنهاء المهمة ✔':'العودة إلى المعركة'; nx.style.display='inline-block';
+}
+function finishAfterQuestion(){
+  $('quiz').classList.remove('show');
+  if(S.asked>=TOTAL||S.kills>=TOTAL){endGame(true);return;}
+  // متابعة اللعب
+  enemies.forEach(e=>{if(e.dead&&e.removeT<=0)e.removeT=2.5;});
+  if(S.spawned<TOTAL)spawnEnemy(false);
+  if(IS_TOUCH){S.state='playing';return;}
+  S.state='paused'; requestLock();
+  setTimeout(()=>{if(S.state==='paused'&&document.pointerLockElement!==canvas)showPause(true);},550);
+}
+$('qNext').onclick=finishAfterQuestion;
+
+/* =====================================================================
+   Pointer Lock والتحكم
+   ===================================================================== */
+function requestLock(){try{const p=canvas.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(e){}}
+function showPause(v){$('pause').classList.toggle('show',v);}
+document.addEventListener('pointerlockchange',()=>{
+  const locked=document.pointerLockElement===canvas;
+  if(locked){ if(S.state==='paused'){S.state='playing';showPause(false);} }
+  else if(S.state==='playing'){S.state='paused';S.mouse=false;showPause(true);}
+});
+document.addEventListener('pointerlockerror',()=>{if(S.state==='paused')showPause(true);});
+$('pause').addEventListener('click',()=>{if(S.state==='paused')requestLock();});
+document.addEventListener('mousemove',e=>{
+  if(S.state!=='playing'||document.pointerLockElement!==canvas)return;
+  if(Math.abs(e.movementX)>400||Math.abs(e.movementY)>400)return;
+  P.yaw-=e.movementX*.0022; P.pitch=clamp(P.pitch-e.movementY*.0022,-1.5,1.5);
+});
+document.addEventListener('mousedown',e=>{if(e.button===0&&S.state==='playing'&&document.pointerLockElement===canvas){S.mouse=true;}});
+document.addEventListener('mouseup',e=>{if(e.button===0)S.mouse=false;});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('blur',()=>{S.mouse=false;for(const k in keys)keys[k]=false;});
+document.addEventListener('keydown',e=>{
+  if(S.state==='question'&&$('quiz').classList.contains('show')){
+    const m={Digit1:0,Digit2:1,Digit3:2,Digit4:3,Numpad1:0,Numpad2:1,Numpad3:2,Numpad4:3}[e.code];
+    if(m!==undefined&&!qAnswered){answer(m);e.preventDefault();return;}
+    if((e.code==='Enter'||e.code==='NumpadEnter'||e.code==='Space')&&qAnswered){e.preventDefault();finishAfterQuestion();return;}
+    return;
+  }
+  if(S.state==='playing'||S.state==='paused'){
+    keys[e.code]=true;
+    if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.code)>=0)e.preventDefault();
+    if(e.code==='KeyR'&&S.state==='playing')startReload();
+  }
+});
+document.addEventListener('keyup',e=>{keys[e.code]=false;});
+
+/* ===== التحكم باللمس ===== */
+(function(){
+  if(!IS_TOUCH)return;
+  const zm=$('tzMove'),zl=$('tzLook'),st=$('tStick'),kn=$('tKnob'),R=52,SENS=.0046;
+  let mId=null,mox=0,moy=0;
+  function idle(){st.style.left='110px';st.style.top=(window.innerHeight-105)+'px';st.style.opacity='.45';kn.style.transform='translate(0,0)';}
+  idle(); window.addEventListener('resize',()=>{if(mId===null)idle();});
+  zm.addEventListener('pointerdown',e=>{
+    if(mId!==null)return; mId=e.pointerId; try{zm.setPointerCapture(mId);}catch(_){}
+    mox=e.clientX; moy=e.clientY; st.style.left=mox+'px'; st.style.top=moy+'px'; st.style.opacity='.9'; e.preventDefault();
+  });
+  zm.addEventListener('pointermove',e=>{
+    if(e.pointerId!==mId)return;
+    let dx=e.clientX-mox,dy=e.clientY-moy; const d=Math.hypot(dx,dy); if(d>R){dx*=R/d;dy*=R/d;}
+    kn.style.transform='translate('+dx+'px,'+dy+'px)';
+    const nx=dx/R,ny=dy/R; TCH.jx=Math.abs(nx)<.18?0:nx; TCH.jy=Math.abs(ny)<.18?0:ny; e.preventDefault();
+  });
+  function endMove(e){
+    if(e.pointerId!==mId)return; mId=null; TCH.jx=0; TCH.jy=0; TCH.sprint=false; $('tbSprint').classList.remove('on'); idle();
+  }
+  zm.addEventListener('pointerup',endMove); zm.addEventListener('pointercancel',endMove);
+  function lookBy(dx,dy){ if(S.state!=='playing')return; P.yaw-=dx*SENS; P.pitch=clamp(P.pitch-dy*SENS,-1.5,1.5); }
+  function bindLook(el,onDown,onUp){
+    let id=null,lx=0,ly=0;
+    el.addEventListener('pointerdown',e=>{
+      if(id!==null)return; id=e.pointerId; try{el.setPointerCapture(id);}catch(_){}
+      lx=e.clientX; ly=e.clientY; if(onDown)onDown(); e.preventDefault();
+    });
+    el.addEventListener('pointermove',e=>{
+      if(e.pointerId!==id)return; lookBy(e.clientX-lx,e.clientY-ly); lx=e.clientX; ly=e.clientY; e.preventDefault();
+    });
+    const up=e=>{if(e.pointerId!==id)return; id=null; if(onUp)onUp();};
+    el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
+  }
+  bindLook(zl);
+  const fb=$('tbFire');
+  bindLook(fb,()=>{S.mouse=true;fb.classList.add('on');},()=>{S.mouse=false;fb.classList.remove('on');});
+  $('tbJump').addEventListener('pointerdown',e=>{TCH.jump=true;e.preventDefault();});
+  $('tbJump').addEventListener('pointerup',()=>{TCH.jump=false;});
+  $('tbReload').addEventListener('pointerdown',e=>{startReload();e.preventDefault();});
+  $('tbSprint').addEventListener('pointerdown',e=>{TCH.sprint=!TCH.sprint;$('tbSprint').classList.toggle('on',TCH.sprint);e.preventDefault();});
+})();
+
+/* =====================================================================
+   بدء / إنهاء اللعبة
+   ===================================================================== */
+function resetGame(){
+  clearEnemies(); clearEffects();
+  P.pos.set(0,0,38); P.vx=P.vz=P.vy=0; P.yaw=0; P.pitch=0; P.onGround=true; P.hp=100;
+  Object.assign(S,{score:0,kills:0,correct:0,asked:0,spawned:0,ammo:MAG,reserve:RESERVE,reloading:false,reloadT:0,nextShot:0,heat:0,recoil:0,T:0,bobT:0,stepD:0,flash:0,hurtFlash:0,sprintK:0,mouse:false});
+  for(const k in keys)keys[k]=false;
+  flash.visible=false; flashLight.intensity=0; camera.fov=75; camera.updateProjectionMatrix();
+  $('vig').style.opacity=0; $('hitm').style.opacity=0;
+  for(const k in hudC)delete hudC[k];
+}
+function startGame(){
+  const name=$('nameIn').value.trim();
+  if(!name){$('loginErr').textContent='⚠ الرجاء كتابة اسم الطالب قبل بدء المهمة.';$('nameIn').focus();return;}
+  $('loginErr').textContent='';
+  S.name=name; S.grade=parseInt($('gradeIn').value,10);
+  try{localStorage.setItem('techMissionGrade',String(S.grade));}catch(e){}
+  initAudio();
+  resetGame(); Q=buildQuestions(S.grade);
+  $('hName').textContent=S.name; $('hGrade').textContent='الصف '+['','','','','','الخامس','السادس','السابع','الثامن','التاسع','العاشر','الحادي عشر','الثاني عشر'][S.grade];
+  $('login').classList.remove('show'); $('end').classList.remove('show'); $('confetti').innerHTML='';
+  $('hud').classList.add('show'); gun.visible=true;
+  const df=4; for(let i=0;i<df;i++)spawnEnemy(true);
+  hud();
+  if(IS_TOUCH){goFullscreen();S.state='playing';}
+  else{
+    S.state='paused'; requestLock();
+    setTimeout(()=>{if(S.state==='paused'&&document.pointerLockElement!==canvas)showPause(true);},500);
+  }
+  toast('اقضِ على 10 أعداء! 🎯','#c8f542',2600);
+}
+function ratingFor(v){return v>=90?'ممتاز':v>=80?'جيد جداً':v>=65?'جيد':v>=50?'مقبول':'يحتاج إلى تحسين';}
+function endGame(win){
+  if(S.state==='ended')return;
+  S.state='ended'; S.mouse=false; if(document.pointerLockElement)document.exitPointerLock();
+  $('quiz').classList.remove('show'); showPause(false); gun.visible=false;
+  win?sfx.win():sfx.lose();
+  const pct=Math.round(S.correct/TOTAL*100),finalG=Math.round(.8*pct+.2*(Math.min(S.kills,TOTAL)/TOTAL*100));
+  const rep=$('report'); rep.className='report '+(win?'win':'lose');
+  $('endBanner').innerHTML=win?'★ نصر مظفّر ★<small>اكتملت المهمة بنجاح — أحسنت أيها الجندي!</small>':'✖ انتهت المهمة<small>سقطتَ في المعركة — حاول مرة أخرى!</small>';
+  $('rStatus').textContent=win?'فوز ✔':'خسارة ✘';
+  $('rName').textContent=S.name;
+  $('rGrade').textContent=$('hGrade').textContent;
+  $('rKills').textContent=S.kills+' من '+TOTAL;
+  $('rCorrect').textContent=S.correct+' من '+TOTAL;
+  $('rPct').textContent=pct+'%';
+  $('rScore').textContent=S.score;
+  $('rFinal').textContent=finalG+' / 100 — '+ratingFor(finalG);
+  $('rDate').textContent='تاريخ التقرير: '+new Date().toLocaleString('ar-OM',{dateStyle:'full',timeStyle:'short'});
+  const sEl=$('rSend'); sEl.textContent=''; sEl.className='foot noprint';
+  if(RESULTS_URL){
+    sEl.textContent='⏳ جارٍ حفظ النتيجة...';
+    sendResult({name:S.name,grade:S.grade,status:win?'win':'lose',kills:Math.min(S.kills,TOTAL),correct:S.correct,pct:pct,score:S.score,final:finalG,rating:ratingFor(finalG)},st=>{
+      sEl.textContent=st==='ok'?'✔ تم إرسال النتيجة إلى المعلم':'⚠ تعذّر إرسال النتيجة (تحقق من الإنترنت) — صوّر البطاقة وأرسلها للمعلم';
+    });
+  }
+  setTimeout(()=>{
+    $('hud').classList.remove('show'); $('end').classList.add('show'); if(win)confetti();
+  },win?400:900);
+}
+function confetti(){
+  const box=$('confetti');box.innerHTML='';const cols=['#c8f542','#ffb300','#ff5252','#40c4ff','#fff','#b388ff'];
+  for(let i=0;i<110;i++){const d=document.createElement('i');d.style.left=Math.random()*100+'%';d.style.background=cols[i%cols.length];
+    d.style.animationDuration=(3+Math.random()*3.5)+'s';d.style.animationDelay=(Math.random()*1.8)+'s';d.style.transform='rotate('+Math.random()*360+'deg)';box.appendChild(d);}
+}
+function toMenu(clearName){
+  S.state='menu'; clearEnemies(); clearEffects(); gun.visible=false; resetGame();
+  $('end').classList.remove('show'); $('confetti').innerHTML=''; $('hud').classList.remove('show'); showPause(false);
+  if(clearName)$('nameIn').value=''; $('login').classList.add('show'); $('nameIn').focus();
+}
+$('startBtn').onclick=startGame;
+$('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')startGame();});
+$('printBtn').onclick=()=>window.print();
+$('againBtn').onclick=()=>toMenu(true);
+$('retryBtn').onclick=()=>{$('end').classList.remove('show');startGame();};
+try{const g=localStorage.getItem('techMissionGrade');if(g)$('gradeIn').value=g;}catch(e){}
+
+/* =====================================================================
+   الحلقة الرئيسية
+   ===================================================================== */
+let last=performance.now(),tShown=null,ingameC=null;
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min((now-last)/1000,.033); last=now;
+  const portrait=IS_TOUCH&&window.innerHeight>window.innerWidth;
+  const ing=S.state==='playing'||S.state==='paused'||S.state==='question';
+  if(ing!==ingameC){ingameC=ing;document.body.classList.toggle('ingame',ing);}
+  if(IS_TOUCH){
+    const v=S.state==='playing'&&!portrait;
+    if(v!==tShown){tShown=v;$('touch').style.display=v?'block':'none';if(!v){TCH.jx=TCH.jy=0;TCH.jump=false;S.mouse=false;}}
+  }
+  if(S.state==='playing'){if(!portrait)update(dt);}
+  else if(S.state==='menu'||S.state==='ended'){
+    menuT+=dt*.12;
+    camera.position.set(Math.cos(menuT)*62,22,Math.sin(menuT)*62); camera.lookAt(0,3,0);
+  }else{
+    for(const e of enemies)if(e.dead)updateCorpse(e,dt);
+    updateEffects(dt);
+  }
+  sky.position.copy(camera.position);
+  renderer.clear(); renderer.render(scene,camera);
+  if(gun.visible&&(S.state==='playing'||S.state==='paused'||S.state==='question')){renderer.clearDepth();renderer.render(wScene,wCam);}
+  if($('hud').classList.contains('show'))drawMini();
+}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
