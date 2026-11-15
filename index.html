@@ -305,10 +305,19 @@ function sendResult(d,cb){
   })();
 }
 // هاتف/لوح: المؤشر الأساسي باللمس. الحواسيب بشاشة لمس تبقى بنمط الماوس والكيبورد.
+// هاتف أو لوح حسب معرّف المتصفح (يشمل iPad بوضع «موقع سطح المكتب»)
+const UA_MOBILE=(function(){
+  try{
+    const ua=navigator.userAgent||'',mtp=navigator.maxTouchPoints||0;
+    return /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile|webOS|CriOS|FxiOS|SamsungBrowser/i.test(ua)||(/Macintosh/i.test(ua)&&mtp>1);
+  }catch(e){return false;}
+})();
 let IS_TOUCH=(function(){
   try{
-    const mq=q=>window.matchMedia&&matchMedia(q).matches;
+    if(UA_MOBILE)return true;
+    const mq=q=>window.matchMedia&&matchMedia(q).matches,mtp=navigator.maxTouchPoints||0;
     if(mq('(pointer:coarse)')&&!mq('(pointer:fine)'))return true;
+    if(mtp>0&&!mq('(hover:hover)')&&Math.min(screen.width,screen.height)<=900)return true;
     if(mq('(pointer:coarse)')&&mq('(hover:none)'))return true;
     if(!window.matchMedia&&'ontouchstart' in window)return true;
   }catch(e){}
@@ -321,9 +330,13 @@ document.addEventListener('pointerdown',function(e){
   try{
     if(typeof S==='undefined'||(S.state!=='menu'&&S.state!=='ended'))return;
     if(e.pointerType==='touch'&&!IS_TOUCH)setInputMode(true);
-    else if(e.pointerType==='mouse'&&IS_TOUCH)setInputMode(false);
+    else if(e.pointerType==='mouse'&&IS_TOUCH&&!UA_MOBILE)setInputMode(false);
   }catch(_){}
 },true);
+// احتياط للمتصفحات التي لا تدعم Pointer Events أو تُبلّغ عن اللمس كأنه ماوس
+document.addEventListener('touchstart',function(){
+  try{if(typeof S!=='undefined'&&(S.state==='menu'||S.state==='ended')&&!IS_TOUCH)setInputMode(true);}catch(_){}
+},{capture:true,passive:true});
 const TCH={jx:0,jy:0,sprint:false,jump:false};
 function goFullscreen(){
   try{const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;if(f){const p=f.call(el);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
