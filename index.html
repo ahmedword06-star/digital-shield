@@ -17,6 +17,9 @@ code{direction:ltr;unicode-bidi:isolate;font-family:Consolas,"Courier New",monos
 .card{position:relative;z-index:2;width:min(94vw,520px);background:linear-gradient(160deg,rgba(28,36,23,.97),rgba(9,13,8,.98));border:1px solid #3d4d2c;padding:26px 30px;
  clip-path:polygon(0 16px,16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px))}
 .card::before{content:"";position:absolute;inset:0;border-top:3px solid var(--acc);pointer-events:none}
+.credit{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);font-size:13px}
+.credit b{color:#fff;font-size:15px}
+.credit span{color:var(--acc)}
 .badge{display:inline-block;font-size:12px;letter-spacing:1px;color:var(--acc);border:1px solid var(--line);padding:3px 10px;margin-bottom:12px}
 .card h1{font-size:34px;line-height:1.25;margin-bottom:6px;color:#fff;text-shadow:0 0 18px rgba(200,245,66,.35)}
 .card h1 span{color:var(--acc)}
@@ -176,6 +179,7 @@ body.touch #toast{top:62px;font-size:15px}
 <!-- شاشة تسجيل الدخول -->
 <div id="login" class="screen show">
   <div class="card">
+    <div class="credit"><b>مدرسة حذيفة بن محصن</b><span>إعداد: أ. أحمد النعيمي</span></div>
     <span class="badge">تقنية المعلومات · مناهج سلطنة عُمان · الصفوف 5 – 12</span>
     <h1>عملية <span>الدرع الرقمي</span></h1>
     <p class="brief">أنت جندي في وحدة الأمن الرقمي. اقضِ على <b style="color:#fff">10 أعداء</b> وأجب عن سؤال المعرفة الذي يسقط مع كل عدو لتُتمّ المهمة وتحقق النصر.</p>
@@ -247,6 +251,7 @@ body.touch #toast{top:62px;font-size:15px}
 <div id="end" class="screen">
   <div class="report" id="report">
     <div class="banner" id="endBanner"></div>
+    <div class="doc" style="color:var(--acc);font-weight:700;margin-bottom:2px">مدرسة حذيفة بن محصن · إعداد: أ. أحمد النعيمي</div>
     <div class="doc">تقرير أداء الطالب · تقنية المعلومات · مناهج سلطنة عُمان</div>
     <table>
       <tr><td>حالة المهمة</td><td id="rStatus"></td></tr>
@@ -300,7 +305,7 @@ function sendResult(d,cb){
   })();
 }
 // هاتف/لوح: المؤشر الأساسي باللمس. الحواسيب بشاشة لمس تبقى بنمط الماوس والكيبورد.
-const IS_TOUCH=(function(){
+let IS_TOUCH=(function(){
   try{
     const mq=q=>window.matchMedia&&matchMedia(q).matches;
     if(mq('(pointer:coarse)')&&!mq('(pointer:fine)'))return true;
@@ -310,6 +315,15 @@ const IS_TOUCH=(function(){
   return false;
 })();
 if(IS_TOUCH)document.body.classList.add('touch');
+// يتبع نوع الإدخال الفعلي: لمس => واجهة الهاتف، ماوس => ماوس وكيبورد (يتحدّث في القائمة الرئيسية وبعد النهاية فقط)
+function setInputMode(t){IS_TOUCH=t;document.body.classList.toggle('touch',t);}
+document.addEventListener('pointerdown',function(e){
+  try{
+    if(typeof S==='undefined'||(S.state!=='menu'&&S.state!=='ended'))return;
+    if(e.pointerType==='touch'&&!IS_TOUCH)setInputMode(true);
+    else if(e.pointerType==='mouse'&&IS_TOUCH)setInputMode(false);
+  }catch(_){}
+},true);
 const TCH={jx:0,jy:0,sprint:false,jump:false};
 function goFullscreen(){
   try{const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;if(f){const p=f.call(el);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
@@ -1212,7 +1226,6 @@ document.addEventListener('keyup',e=>{keys[e.code]=false;});
 
 /* ===== التحكم باللمس ===== */
 (function(){
-  if(!IS_TOUCH)return;
   const zm=$('tzMove'),zl=$('tzLook'),st=$('tStick'),kn=$('tKnob'),R=52,SENS=.0046;
   let mId=null,mox=0,moy=0;
   function idle(){st.style.left='110px';st.style.top=(window.innerHeight-105)+'px';st.style.opacity='.45';kn.style.transform='translate(0,0)';}
