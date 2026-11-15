@@ -17,6 +17,9 @@ code{direction:ltr;unicode-bidi:isolate;font-family:Consolas,"Courier New",monos
 .card{position:relative;z-index:2;width:min(94vw,520px);background:linear-gradient(160deg,rgba(28,36,23,.97),rgba(9,13,8,.98));border:1px solid #3d4d2c;padding:26px 30px;
  clip-path:polygon(0 16px,16px 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 16px),calc(100% - 16px) 100%,16px 100%,0 calc(100% - 16px))}
 .card::before{content:"";position:absolute;inset:0;border-top:3px solid var(--acc);pointer-events:none}
+.devsel{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.devsel button{font-family:inherit;font-size:15px;font-weight:700;padding:11px 8px;background:rgba(0,0,0,.55);color:var(--txt);border:1px solid #44562f;cursor:pointer;transition:background .15s,border-color .15s}
+.devsel button.on{background:var(--olive);color:#0b1104;border-color:var(--acc);box-shadow:0 0 0 2px rgba(200,245,66,.25)}
 .credit{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);font-size:13px}
 .credit b{color:#fff;font-size:15px}
 .credit span{color:var(--acc)}
@@ -192,6 +195,8 @@ body.touch #toast{top:62px;font-size:15px}
       <option value="9">الصف التاسع</option><option value="10">الصف العاشر</option>
       <option value="11">الصف الحادي عشر</option><option value="12">الصف الثاني عشر</option>
     </select>
+    <label>نوع الجهاز</label>
+    <div class="devsel" id="devSel"><button type="button" id="devPhone">📱 هاتف / لوح</button><button type="button" id="devPC">💻 حاسوب</button></div>
     <div class="err" id="loginErr"></div>
     <div class="thint" style="display:block;margin:0 0 4px;font-size:11px">عند انتهاء الجولة تُرسَل نتيجتك (الاسم والصف والدرجة) إلى المعلم المشرف على اللعبة.</div>
     <button id="startBtn" class="btn big">ابدأ المهمة</button>
@@ -325,18 +330,27 @@ let IS_TOUCH=(function(){
 })();
 if(IS_TOUCH)document.body.classList.add('touch');
 // يتبع نوع الإدخال الفعلي: لمس => واجهة الهاتف، ماوس => ماوس وكيبورد (يتحدّث في القائمة الرئيسية وبعد النهاية فقط)
-function setInputMode(t){IS_TOUCH=t;document.body.classList.toggle('touch',t);}
+let MANUAL=false; // اختيار الطالب اليدوي يتقدّم على الكشف التلقائي
+function syncDev(){const a=$('devPhone'),b=$('devPC');if(a&&b){a.classList.toggle('on',IS_TOUCH);b.classList.toggle('on',!IS_TOUCH);}}
+function setInputMode(t){IS_TOUCH=t;document.body.classList.toggle('touch',t);syncDev();}
 document.addEventListener('pointerdown',function(e){
   try{
-    if(typeof S==='undefined'||(S.state!=='menu'&&S.state!=='ended'))return;
+    if(MANUAL||typeof S==='undefined'||(S.state!=='menu'&&S.state!=='ended'))return;
     if(e.pointerType==='touch'&&!IS_TOUCH)setInputMode(true);
     else if(e.pointerType==='mouse'&&IS_TOUCH&&!UA_MOBILE)setInputMode(false);
   }catch(_){}
 },true);
 // احتياط للمتصفحات التي لا تدعم Pointer Events أو تُبلّغ عن اللمس كأنه ماوس
 document.addEventListener('touchstart',function(){
-  try{if(typeof S!=='undefined'&&(S.state==='menu'||S.state==='ended')&&!IS_TOUCH)setInputMode(true);}catch(_){}
+  try{if(!MANUAL&&typeof S!=='undefined'&&(S.state==='menu'||S.state==='ended')&&!IS_TOUCH)setInputMode(true);}catch(_){}
 },{capture:true,passive:true});
+(function(){
+  try{const sv=localStorage.getItem('techMissionDevice');if(sv==='phone'||sv==='pc'){MANUAL=true;setInputMode(sv==='phone');}}catch(e){}
+  syncDev();
+  function pick(t){MANUAL=true;setInputMode(t);try{localStorage.setItem('techMissionDevice',t?'phone':'pc');}catch(e){}}
+  $('devPhone').onclick=function(){pick(true);};
+  $('devPC').onclick=function(){pick(false);};
+})();
 const TCH={jx:0,jy:0,sprint:false,jump:false};
 function goFullscreen(){
   try{const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;if(f){const p=f.call(el);if(p&&p.catch)p.catch(()=>{});}}catch(e){}
