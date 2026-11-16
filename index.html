@@ -238,7 +238,7 @@ body.touch #weaponBar .wslot{min-width:74px;min-height:46px;padding:10px 8px;fon
     <h1 style="font-size:26px">نتائج الطلاب</h1>
     <p class="brief">ادخل اسم المعلم والرمز لعرض النتائج المسجلة في Google Sheets.</p>
     <label for="tName">اسم المعلم</label>
-    <input id="tName" maxlength="30" autocomplete="off" placeholder="مثال: ahmed">
+    <input id="tName" maxlength="30" autocomplete="off" placeholder="اسم المعلم">
     <label for="tCode">الرمز</label>
     <input id="tCode" type="password" maxlength="20" autocomplete="off" placeholder="••••••">
     <div class="err" id="teacherErr"></div>
@@ -1676,7 +1676,7 @@ function toMenu(clearName){
 }
 $('startBtn').onclick=startGame;
 // ===== دخول المعلم — Google Sheets =====
-const TEACHER_USER='ahmed', TEACHER_CODE='112233';
+// Teacher login is verified only on the server (Apps Script) — no code is stored in this page.
 function teacherShowScreen(){ $('login').classList.remove('show'); $('teacher').classList.add('show'); const n=$('tName'); if(n) n.focus(); }
 function teacherBack(){ $('teacher').classList.remove('show'); $('login').classList.add('show'); }
 function teacherRender(rows){
@@ -1696,13 +1696,13 @@ function teacherLoad(){
   const name=($('tName').value||'').trim().toLowerCase();
   const code=($('tCode').value||'').trim();
   const err=$('teacherErr'); err.textContent='';
-  if(name!==TEACHER_USER || code!==TEACHER_CODE){ err.textContent='اسم أو رمز غير صحيح'; return; }
+  if(!name || !code){ err.textContent='اكتب اسم المعلم والرمز'; return; }
   if(!RESULTS_URL){ $('teacherStatus').textContent='الربط مع Google Sheets لسه ما اكتمل — رابط النتائج غير مضبوط بعد.'; return; }
   $('teacherStatus').textContent='جارٍ تحميل النتائج...';
   fetch(RESULTS_URL+'?action=list&user='+encodeURIComponent(name)+'&code='+encodeURIComponent(code))
     .then(r=>r.json())
     .then(j=>{
-      if(!j || !j.ok){ $('teacherStatus').textContent='تعذّر تحميل النتائج: '+((j&&j.error)||'خطأ غير معروف'); return; }
+      if(!j || !j.ok){ if(j && j.error==='unauthorized'){ err.textContent='اسم أو رمز غير صحيح'; $('teacherStatus').textContent=''; } else { $('teacherStatus').textContent='تعذّر تحميل النتائج — حاول مجدداً.'; } return; }
       teacherRender(j.rows||[]);
     })
     .catch(()=>{ $('teacherStatus').textContent='تعذّر الاتصال بخادم النتائج — تأكد من الإنترنت وحاول مجدداً.'; });
