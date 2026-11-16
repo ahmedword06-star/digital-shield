@@ -175,6 +175,15 @@ body.touch #ammoTxt{font-size:20px}
 body.touch #ammoTxt small{font-size:12px}
 body.touch #toast{top:62px;font-size:15px}
 body.touch #weaponBar{bottom:70px;gap:6px}
+#teacherLink{width:100%;margin-top:10px}
+#teacher .card{width:min(96vw,860px)}
+#teacherTblWrap{overflow:auto;max-height:46vh;margin-top:10px;border:1px solid var(--line)}
+#teacherTbl{width:100%;border-collapse:collapse;font-size:13px;direction:rtl}
+#teacherTbl th,#teacherTbl td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.1);text-align:right;white-space:nowrap}
+#teacherTbl th{background:rgba(200,245,66,.12);color:var(--acc);position:sticky;top:0}
+#teacherTbl td{color:#fff}
+.teacherRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.teacherRow .btn{flex:1}
 body.touch #weaponBar .wslot{min-width:74px;min-height:46px;padding:10px 8px;font-size:13px}
 @media (orientation:portrait){body.touch.ingame #rot{display:flex}}
 @media (max-height:520px){
@@ -211,6 +220,7 @@ body.touch #weaponBar .wslot{min-width:74px;min-height:46px;padding:10px 8px;fon
     <div class="err" id="loginErr"></div>
     <div class="thint" style="display:block;margin:0 0 4px;font-size:11px">عند انتهاء الجولة تُرسَل نتيجتك (الاسم والصف والدرجة) إلى المعلم المشرف على اللعبة.</div>
     <button id="startBtn" class="btn big">ابدأ المهمة</button>
+    <button id="teacherBtn" type="button" class="btn alt" style="width:100%;margin-top:10px">👨‍🏫 دخول معلم</button>
     <div class="thint">📱 الحركة: العصا اليسرى · التصويب: اسحب بإصبعك على الجهة اليمنى · 🔥 للنار · وأزرار القفز والتلقيم والجري<br>يُفضّل تدوير الهاتف إلى الوضع الأفقي</div>
     <div class="ctrls">
       <div>الحركة <b>W A S D</b></div><div>القفز <b>Space</b></div>
@@ -218,6 +228,24 @@ body.touch #weaponBar .wslot{min-width:74px;min-height:46px;padding:10px 8px;fon
       <div>التصويب <b>الماوس</b></div><div>إطلاق النار <b>زر الماوس الأيسر</b></div>
       <div>تبديل السلاح <b>1 / 2 / 3</b> أو عجلة الماوس</div><div>انحناء <b>C</b> · انزلاق <b>Ctrl</b> أثناء الركض</div>
     </div>
+  </div>
+</div>
+
+<!-- دخول المعلم — نتائج الطلاب -->
+<div id="teacher" class="screen">
+  <div class="card">
+    <span class="badge">دخول المعلم</span>
+    <h1 style="font-size:26px">نتائج الطلاب</h1>
+    <p class="brief">ادخل اسم المعلم والرمز لعرض النتائج المسجلة في Google Sheets.</p>
+    <label for="tName">اسم المعلم</label>
+    <input id="tName" maxlength="30" autocomplete="off" placeholder="مثال: ahmed">
+    <label for="tCode">الرمز</label>
+    <input id="tCode" type="password" maxlength="20" autocomplete="off" placeholder="••••••">
+    <div class="err" id="teacherErr"></div>
+    <div class="teacherRow"><button id="teacherShowBtn" class="btn big" style="margin-top:6px">عرض النتائج</button><button id="teacherBackBtn" type="button" class="btn alt" style="margin-top:6px">رجوع</button></div>
+    <div id="teacherStatus" style="margin-top:10px;font-size:13px;color:var(--mut)"></div>
+    <div id="teacherTblWrap" style="display:none"><table id="teacherTbl"></table></div>
+    <div class="teacherRow"><button id="teacherRefreshBtn" type="button" class="btn alt" style="display:none">🔄 تحديث النتائج</button></div>
   </div>
 </div>
 
@@ -314,7 +342,7 @@ const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const rand=(a,b)=>a+Math.random()*(b-a);
 // ✏️ ضع هنا رابط تطبيق الويب من Google Apps Script (ينتهي بـ /exec). اتركه فارغاً لإيقاف حفظ النتائج.
-const RESULTS_URL='';
+const RESULTS_URL='https://script.google.com/macros/s/AKfycbx-nrW3aC9z06NAEGCDZ2ohpzFYBxToBB8xQY0bmJMXFp66awNF3rnCPrqXqsBlJ2x-/exec';
 function sendResult(d,cb){
   if(!RESULTS_URL){cb('off');return;}
   let tries=0;
@@ -1647,6 +1675,45 @@ function toMenu(clearName){
   if(clearName)$('nameIn').value=''; $('login').classList.add('show'); $('nameIn').focus();
 }
 $('startBtn').onclick=startGame;
+// ===== دخول المعلم — Google Sheets =====
+const TEACHER_USER='ahmed', TEACHER_CODE='112233';
+function teacherShowScreen(){ $('login').classList.remove('show'); $('teacher').classList.add('show'); const n=$('tName'); if(n) n.focus(); }
+function teacherBack(){ $('teacher').classList.remove('show'); $('login').classList.add('show'); }
+function teacherRender(rows){
+  const tbl=$('teacherTbl'), wrap=$('teacherTblWrap');
+  if(!rows || !rows.length){ tbl.innerHTML=''; wrap.style.display='none'; $('teacherStatus').textContent='لا توجد نتائج بعد — العب جولة وستظهر هنا.'; return; }
+  const heads=['التاريخ','اسم الطالب','الصف','الحالة','الأعداء','الإجابات الصحيحة','النسبة %','النقاط','الدرجة النهائية','التقييم'];
+  let h='<tr>'+heads.map(x=>'<th>'+x+'</th>').join('')+'</tr>';
+  rows.forEach(r=>{
+    const a=r._raw || [r.c0||'',r.c1||'',r.c2||'',r.c3||'',r.c4||'',r.c5||'',r.c6||'',r.c7||'',r.c8||'',r.c9||''];
+    h+='<tr>'+a.map((v,i)=>'<td>'+String(v==null?'':v).replace(/</g,'&lt;')+'</td>').join('')+'</tr>';
+  });
+  tbl.innerHTML=h; wrap.style.display='block';
+  $('teacherStatus').textContent='عدد النتائج: '+rows.length+' — آخر نتيجة في الأعلى.';
+  $('teacherRefreshBtn').style.display='block';
+}
+function teacherLoad(){
+  const name=($('tName').value||'').trim().toLowerCase();
+  const code=($('tCode').value||'').trim();
+  const err=$('teacherErr'); err.textContent='';
+  if(name!==TEACHER_USER || code!==TEACHER_CODE){ err.textContent='اسم أو رمز غير صحيح'; return; }
+  if(!RESULTS_URL){ $('teacherStatus').textContent='الربط مع Google Sheets لسه ما اكتمل — رابط النتائج غير مضبوط بعد.'; return; }
+  $('teacherStatus').textContent='جارٍ تحميل النتائج...';
+  fetch(RESULTS_URL+'?action=list&user='+encodeURIComponent(name)+'&code='+encodeURIComponent(code))
+    .then(r=>r.json())
+    .then(j=>{
+      if(!j || !j.ok){ $('teacherStatus').textContent='تعذّر تحميل النتائج: '+((j&&j.error)||'خطأ غير معروف'); return; }
+      teacherRender(j.rows||[]);
+    })
+    .catch(()=>{ $('teacherStatus').textContent='تعذّر الاتصال بخادم النتائج — تأكد من الإنترنت وحاول مجدداً.'; });
+}
+(function(){
+  const b=$('teacherBtn'); if(b) b.onclick=teacherShowScreen;
+  const s=$('teacherShowBtn'); if(s) s.onclick=teacherLoad;
+  const bk=$('teacherBackBtn'); if(bk) bk.onclick=teacherBack;
+  const rf=$('teacherRefreshBtn'); if(rf) rf.onclick=teacherLoad;
+  const tc=$('tCode'); if(tc) tc.addEventListener('keydown',e=>{ if(e.key==='Enter') teacherLoad(); });
+})();
 $('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')startGame();});
 $('printBtn').onclick=()=>window.print();
 $('againBtn').onclick=()=>toMenu(true);
