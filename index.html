@@ -41,7 +41,7 @@ select option{background:#10160d;color:#fff}
 .ctrls{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12px;color:var(--mut)}
 .ctrls b{color:var(--acc);font-family:Consolas,monospace;direction:ltr;unicode-bidi:isolate;background:rgba(255,255,255,.07);padding:1px 6px;margin-inline-start:4px}
 /* HUD */
-#hud{position:fixed;inset:0;pointer-events:none;display:none;z-index:10}
+#hud{position:fixed;inset:0;pointer-events:none;display:none;z-index:15}
 #hud.show{display:block}
 .panel{position:absolute;background:rgba(8,12,7,.66);border:1px solid var(--line);padding:8px 14px}
 #pInfo{top:14px;right:14px;min-width:170px}
@@ -63,8 +63,8 @@ select option{background:#10160d;color:#fff}
 .bar{height:10px;background:rgba(255,255,255,.12);margin-top:4px;overflow:hidden}
 #hpFill{height:100%;width:100%;background:#7cd34a;transition:width .15s}
 #ammoBox{bottom:18px;left:18px;text-align:center;min-width:150px}
-#weaponBar{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:8px;direction:rtl}
-#weaponBar .wslot{background:rgba(8,12,7,.66);border:1px solid var(--line);padding:6px 12px;text-align:center;min-width:96px;color:var(--mut);font-size:12px}
+#weaponBar{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:8px;direction:rtl;pointer-events:auto;z-index:25;cursor:pointer;touch-action:manipulation}
+#weaponBar .wslot{background:rgba(8,12,7,.66);border:1px solid var(--line);padding:6px 12px;text-align:center;min-width:96px;color:var(--mut);font-size:12px;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 #weaponBar .wslot b{display:block;color:#fff;font-size:14px}
 #weaponBar .wslot.on{border-color:var(--acc);color:#fff;box-shadow:0 0 0 2px rgba(200,245,66,.25)}
 #weaponBar .wslot.on b{color:var(--acc)}
@@ -153,6 +153,7 @@ select option{background:#10160d;color:#fff}
 #tbJump{right:calc(136px + env(safe-area-inset-right,0px));bottom:calc(40px + env(safe-area-inset-bottom,0px));width:64px;height:64px}
 #tbReload{right:calc(40px + env(safe-area-inset-right,0px));bottom:calc(134px + env(safe-area-inset-bottom,0px));width:58px;height:58px}
 #tbSprint{left:calc(24px + env(safe-area-inset-left,0px));bottom:176px;width:58px;height:58px}
+#tbWeapon{left:calc(24px + env(safe-area-inset-left,0px));bottom:calc(242px + env(safe-area-inset-bottom,0px));width:58px;height:58px}
 #rot{position:fixed;inset:0;z-index:60;background:#0a0e08;display:none;align-items:center;justify-content:center;text-align:center;font-size:20px;line-height:2;color:var(--acc);padding:20px}
 body.touch .ctrls,body.touch .hint{display:none}
 body.touch .thint{display:block}
@@ -173,6 +174,8 @@ body.touch #ammoBox{bottom:auto;left:auto;top:84px;right:6px;min-width:0;padding
 body.touch #ammoTxt{font-size:20px}
 body.touch #ammoTxt small{font-size:12px}
 body.touch #toast{top:62px;font-size:15px}
+body.touch #weaponBar{bottom:70px;gap:6px}
+body.touch #weaponBar .wslot{min-width:74px;min-height:46px;padding:10px 8px;font-size:13px}
 @media (orientation:portrait){body.touch.ingame #rot{display:flex}}
 @media (max-height:520px){
  .card{padding:14px 20px}.card h1{font-size:22px;margin-bottom:4px}.badge{margin-bottom:6px}.brief{font-size:12px;margin-bottom:6px;line-height:1.6}
@@ -295,6 +298,7 @@ body.touch #toast{top:62px;font-size:15px}
   <div id="tzMove"></div><div id="tzLook"></div>
   <div id="tStick"><div id="tKnob"></div></div>
   <div class="tb" id="tbSprint">جري</div>
+  <div class="tb" id="tbWeapon">🔄<br>سلاح</div>
   <div class="tb" id="tbReload">تلقيم</div>
   <div class="tb" id="tbJump">قفز</div>
   <div class="tb" id="tbFire">🔥<br>نار</div>
@@ -1273,6 +1277,8 @@ function switchWeapon(i){
   toast(WEAPONS[i].name,'#c8f542',700);
 }
 document.addEventListener('wheel',e=>{if(S.state==='playing')switchWeapon(((S.wi||0)+(e.deltaY>0?1:WEAPONS.length-1))%WEAPONS.length);},{passive:true});
+// v2.1 fix: tapping a weapon slot must switch weapon on touch (iPhone/Android) — HUD was pointer-events:none and had no tap handler
+(function(){const wbEl=$('weaponBar');if(!wbEl)return;const pick=e=>{const s=e.target&&e.target.closest?e.target.closest('.wslot'):null;if(!s)return false;const idx=parseInt(s.getAttribute('data-idx'),10);if(isNaN(idx))return false;e.preventDefault();e.stopPropagation();switchWeapon(idx);return true;};wbEl.addEventListener('pointerdown',e=>{pick(e);},{passive:false});wbEl.addEventListener('click',e=>{pick(e);});})();
 function tryFire(){
   if(S.state!=='playing'||S.T<S.nextShot)return;
   if(S.reloading)return;
@@ -1329,7 +1335,7 @@ function hud(force){
   const wb=$('weaponBar');
   if(wb){
     const key=WEAPONS.map((w,i)=>i+'|'+S.wpn[i].ammo+'/'+S.wpn[i].reserve).join(';');
-    if(hudC.wb!==key){hudC.wb=key; wb.innerHTML=WEAPONS.map((w,i)=>'<div class="wslot'+(i===(S.wi||0)?' on':'')+'"><b>'+w.key+' · '+w.name+'</b>'+S.wpn[i].ammo+' / '+S.wpn[i].reserve+'</div>').join('');}
+    if(hudC.wb!==key){hudC.wb=key; wb.innerHTML=WEAPONS.map((w,i)=>'<div class="wslot'+(i===(S.wi||0)?' on':'')+'" data-idx="'+i+'"><b>'+w.key+' · '+w.name+'</b>'+S.wpn[i].ammo+' / '+S.wpn[i].reserve+'</div>').join('');}
   }
   const st=Math.round(S.stamina||100); if(hudC.st!==st){hudC.st=st; const f=$('staminaFill'); if(f)f.style.width=st+'%'; const stx=$('stamTxt'); if(stx)stx.textContent=String(st);}
   const cr=S.slideT>0?'انزلاق!':(S.crouch?'منحنٍ (C)':''); if(hudC.cr!==cr){hudC.cr=cr; const c=$('crouchInd'); if(c)c.textContent=cr;}
@@ -1565,6 +1571,7 @@ document.addEventListener('keyup',e=>{keys[e.code]=false;});
   $('tbJump').addEventListener('pointerdown',e=>{TCH.jump=true;e.preventDefault();});
   $('tbJump').addEventListener('pointerup',()=>{TCH.jump=false;});
   $('tbReload').addEventListener('pointerdown',e=>{startReload();e.preventDefault();});
+  const tw=$('tbWeapon'); if(tw)tw.addEventListener('pointerdown',e=>{if(S.state==='playing')switchWeapon(((S.wi||0)+1)%WEAPONS.length);e.preventDefault();e.stopPropagation();});
   $('tbSprint').addEventListener('pointerdown',e=>{TCH.sprint=!TCH.sprint;$('tbSprint').classList.toggle('on',TCH.sprint);e.preventDefault();});
 })();
 
